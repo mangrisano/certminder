@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from certwatch.evaluator import evaluate
-from certwatch.models import EventKind, Severity
-from certwatch.state import TargetState
+from certminder.evaluator import evaluate
+from certminder.models import EventKind, Severity
+from certminder.state import TargetState
 from conftest import make_result
 
 

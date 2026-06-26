@@ -7,8 +7,8 @@ import sys
 import urllib.error
 import urllib.request
 
-from certwatch.models import Event
-from certwatch.notifiers.base import Notifier
+from certminder.models import Event
+from certminder.notifiers.base import Notifier
 
 
 class WebhookNotifier(Notifier):
@@ -53,4 +53,4 @@ class WebhookNotifier(Notifier):
             with urllib.request.urlopen(request, timeout=self.timeout) as resp:
                 resp.read()
         except (urllib.error.URLError, OSError) as exc:
-            print(f"certwatch: webhook delivery failed: {exc}", file=sys.stderr)
+            print(f"certminder: webhook delivery failed: {exc}", file=sys.stderr)

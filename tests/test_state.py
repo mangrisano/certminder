@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from certwatch.state import StateStore, TargetState
+from certminder.state import StateStore, TargetState
 
 
 def test_roundtrip(tmp_path):

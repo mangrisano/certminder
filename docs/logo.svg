@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" role="img" aria-label="certwatch">
-    <title>certwatch</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" role="img" aria-label="certminder">
+    <title>certminder</title>
     <rect x="3" y="3" width="754" height="194" rx="30" fill="#0f172a" stroke="#1e293b" stroke-width="3"/>
     <!-- watch face / radar over a certificate -->
     <g transform="translate(108,100)">
@@ -19,7 +19,7 @@
     </g>
     <text x="206" y="106" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="62" font-weight="700">
         <tspan fill="#f59e0b">cert</tspan>
-        <tspan fill="#e2e8f0">watch</tspan>
+        <tspan fill="#e2e8f0">minder</tspan>
     </text>
     <text x="208" y="152" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="22" letter-spacing="2" fill="#94a3b8">tls certificate monitor</text>
 </svg>

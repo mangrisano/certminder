@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from certwatch.models import Event, EventKind, Severity
-from certwatch.notifiers import REGISTRY, build_notifier
-from certwatch.notifiers.email import EmailNotifier
+from certminder.models import Event, EventKind, Severity
+from certminder.notifiers import REGISTRY, build_notifier
+from certminder.notifiers.email import EmailNotifier
 
 
 def _event(severity: Severity = Severity.WARNING, message: str = "x: oops") -> Event:
@@ -50,8 +50,8 @@ def test_email_subject_reflects_worst_severity():
         _event(Severity.CRITICAL),
         _event(Severity.WARNING),
     ]
-    assert n._subject(events) == "[certwatch] CRITICAL: 3 events"
-    assert n._subject([_event(Severity.WARNING)]) == "[certwatch] WARNING: 1 event"
+    assert n._subject(events) == "[certminder] CRITICAL: 3 events"
+    assert n._subject([_event(Severity.WARNING)]) == "[certminder] WARNING: 1 event"
 
 
 def test_email_message_has_headers_and_body():
@@ -59,7 +59,7 @@ def test_email_message_has_headers_and_body():
     message = n._build_message([_event(message="x: expires soon")])
     assert message["From"] == "c@d.e"
     assert message["To"] == "a@b.c, x@y.z"
-    assert message["Subject"] == "[certwatch] WARNING: 1 event"
+    assert message["Subject"] == "[certminder] WARNING: 1 event"
     assert "x: expires soon" in message.get_content()
 
 
@@ -110,7 +110,7 @@ def test_email_deliver_uses_starttls(monkeypatch):
         def send_message(self, message):
             actions.append("send")
 
-    monkeypatch.setattr("certwatch.notifiers.email.smtplib.SMTP", FakeSMTP)
+    monkeypatch.setattr("certminder.notifiers.email.smtplib.SMTP", FakeSMTP)
     n = EmailNotifier(
         host="smtp",
         to="a@b.c",
@@ -142,7 +142,7 @@ def test_email_deliver_uses_ssl(monkeypatch):
         def send_message(self, message):
             actions.append("send")
 
-    monkeypatch.setattr("certwatch.notifiers.email.smtplib.SMTP_SSL", FakeSMTPSSL)
+    monkeypatch.setattr("certminder.notifiers.email.smtplib.SMTP_SSL", FakeSMTPSSL)
     n = EmailNotifier(
         host="smtp",
         to="a@b.c",

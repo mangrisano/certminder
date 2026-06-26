@@ -1,5 +1,5 @@
 # How certinspect is invoked, and the meaning of its exit codes, is the
-# contract certwatch depends on. Keep this file as the single source of truth
+# contract certminder depends on. Keep this file as the single source of truth
 # for operators: edit targets and notifiers here, not in code.
 
 # Path or name of the certinspect executable (must be on PATH or absolute).
@@ -10,7 +10,7 @@ interval: 6h
 
 # Where the per-target state (last fingerprint, last status, sent alerts) is
 # persisted between runs. '~' is expanded.
-state_file: ~/.certwatch/state.json
+state_file: ~/.certminder/state.json
 
 # How many targets to inspect in parallel each cycle.
 concurrency: 8
@@ -18,7 +18,7 @@ concurrency: 8
 # Optional: write Prometheus metrics for the node_exporter textfile collector.
 # Point this at a file inside --collector.textfile.directory. Rewritten
 # atomically at the end of every cycle. Omit to disable.
-prometheus_file: /var/lib/node_exporter/textfile/certwatch.prom
+prometheus_file: /var/lib/node_exporter/textfile/certminder.prom
 
 # Applied to every target unless the target overrides them.
 defaults:
@@ -34,7 +34,7 @@ notifiers:
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
   - type: webhook
-    url: "https://example.com/certwatch-hook"
+    url: "https://example.com/certminder-hook"
     # optional extra headers, e.g. an auth token
     headers:
       Authorization: "Bearer CHANGE_ME"

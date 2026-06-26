@@ -1,0 +1,40 @@
+# certminder as a periodic systemd timer (cron-style: one cycle per trigger).
+#
+# Install:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin certminder
+#   sudo install -Dm644 certminder.example.yml /etc/certminder/certminder.yml
+#   sudo cp deploy/systemd/certminder.service deploy/systemd/certminder.timer \
+#           /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now certminder.timer
+#
+# Inspect:  systemctl list-timers certminder.timer
+#           journalctl -u certminder.service
+
+[Unit]
+Description=certminder — one TLS certificate inspection cycle
+Documentation=https://github.com/mangrisano/certminder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=certminder
+Group=certminder
+ExecStart=/usr/local/bin/certminder once -c /etc/certminder/certminder.yml
+
+# State lives in /var/lib/certminder (set state_file there in certminder.yml).
+StateDirectory=certminder
+StateDirectoryMode=0750
+
+# Hardening: certminder only needs the network and its state directory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true

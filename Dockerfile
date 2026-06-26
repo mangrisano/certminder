@@ -1,17 +1,17 @@
-# certwatch container image.
+# certminder container image.
 #
 # Build:
-#   docker build -t certwatch .
+#   docker build -t certminder .
 # Run a single cycle (cron-style), config and state mounted from the host:
 #   docker run --rm \
-#     -v "$PWD/certwatch.yml:/etc/certwatch/certwatch.yml:ro" \
-#     -v certwatch-state:/var/lib/certwatch \
-#     certwatch once -c /etc/certwatch/certwatch.yml
+#     -v "$PWD/certminder.yml:/etc/certminder/certminder.yml:ro" \
+#     -v certminder-state:/var/lib/certminder \
+#     certminder once -c /etc/certminder/certminder.yml
 # Run as a daemon (the default CMD):
-#   docker run -d --name certwatch \
-#     -v "$PWD/certwatch.yml:/etc/certwatch/certwatch.yml:ro" \
-#     -v certwatch-state:/var/lib/certwatch \
-#     certwatch
+#   docker run -d --name certminder \
+#     -v "$PWD/certminder.yml:/etc/certminder/certminder.yml:ro" \
+#     -v certminder-state:/var/lib/certminder \
+#     certminder
 
 FROM python:3.12-slim AS build
 
@@ -24,16 +24,16 @@ RUN pip install --no-cache-dir build \
 
 FROM python:3.12-slim
 
-# certwatch shells out to certinspect; both come from PyPI via the wheel's deps.
+# certminder shells out to certinspect; both come from PyPI via the wheel's deps.
 COPY --from=build /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl certinspect \
     && rm -rf /tmp/*.whl \
-    && useradd --system --no-create-home --uid 10001 certwatch \
-    && mkdir -p /var/lib/certwatch \
-    && chown certwatch:certwatch /var/lib/certwatch
+    && useradd --system --no-create-home --uid 10001 certminder \
+    && mkdir -p /var/lib/certminder \
+    && chown certminder:certminder /var/lib/certminder
 
-USER certwatch
-VOLUME ["/var/lib/certwatch"]
+USER certminder
+VOLUME ["/var/lib/certminder"]
 
-ENTRYPOINT ["certwatch"]
-CMD ["run", "-c", "/etc/certwatch/certwatch.yml"]
+ENTRYPOINT ["certminder"]
+CMD ["run", "-c", "/etc/certminder/certminder.yml"]

@@ -7,8 +7,8 @@ import sys
 import urllib.error
 import urllib.request
 
-from certwatch.models import Event, Severity
-from certwatch.notifiers.base import Notifier
+from certminder.models import Event, Severity
+from certminder.notifiers.base import Notifier
 
 _EMOJI = {
     Severity.INFO: ":white_check_mark:",
@@ -43,4 +43,4 @@ class SlackNotifier(Notifier):
             with urllib.request.urlopen(request, timeout=self.timeout) as resp:
                 resp.read()
         except (urllib.error.URLError, OSError) as exc:
-            print(f"certwatch: slack delivery failed: {exc}", file=sys.stderr)
+            print(f"certminder: slack delivery failed: {exc}", file=sys.stderr)

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import sys
 
-from certwatch.models import Event, Severity
-from certwatch.notifiers.base import Notifier
+from certminder.models import Event, Severity
+from certminder.notifiers.base import Notifier
 
 _ICON = {
     Severity.INFO: "[ok]",

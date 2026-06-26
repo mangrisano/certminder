@@ -7,11 +7,11 @@ A notifier receives the events produced in a cycle and delivers them somewhere
 
 from __future__ import annotations
 
-from certwatch.notifiers.base import Notifier
-from certwatch.notifiers.console import ConsoleNotifier
-from certwatch.notifiers.email import EmailNotifier
-from certwatch.notifiers.slack import SlackNotifier
-from certwatch.notifiers.webhook import WebhookNotifier
+from certminder.notifiers.base import Notifier
+from certminder.notifiers.console import ConsoleNotifier
+from certminder.notifiers.email import EmailNotifier
+from certminder.notifiers.slack import SlackNotifier
+from certminder.notifiers.webhook import WebhookNotifier
 
 REGISTRY: dict[str, type[Notifier]] = {
     "console": ConsoleNotifier,

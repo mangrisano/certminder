@@ -9,8 +9,8 @@ state to persist. Deduplication lives here: a problem already present in
 
 from __future__ import annotations
 
-from certwatch.models import CheckResult, Event, EventKind, Severity
-from certwatch.state import TargetState
+from certminder.models import CheckResult, Event, EventKind, Severity
+from certminder.state import TargetState
 
 # Map a status string to the event it raises and its severity.
 _STATUS_EVENTS: dict[str, tuple[EventKind, Severity]] = {

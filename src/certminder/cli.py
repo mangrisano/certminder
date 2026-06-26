@@ -1,4 +1,4 @@
-"""Command-line entry point for certwatch.
+"""Command-line entry point for certminder.
 
 Subcommands:
     once    run a single inspection cycle and exit (ideal for cron)
@@ -12,16 +12,16 @@ import argparse
 import json
 import sys
 
-from certwatch import __version__
-from certwatch.config import Config, ConfigError, load_config
-from certwatch.engine import check_target
-from certwatch.models import Target
-from certwatch.scheduler import run_loop, run_once
+from certminder import __version__
+from certminder.config import Config, ConfigError, load_config
+from certminder.engine import check_target
+from certminder.models import Target
+from certminder.scheduler import run_loop, run_once
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="certwatch",
+        prog="certminder",
         description="Continuously monitor TLS certificates and alert on changes.",
     )
     parser.add_argument(
@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_once = sub.add_parser("once", help="run a single inspection cycle and exit")
-    p_once.add_argument("-c", "--config", required=True, help="path to certwatch.yml")
+    p_once.add_argument("-c", "--config", required=True, help="path to certminder.yml")
     p_once.add_argument(
         "--json",
         action="store_true",
@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     p_run = sub.add_parser("run", help="run continuously as a daemon")
-    p_run.add_argument("-c", "--config", required=True, help="path to certwatch.yml")
+    p_run.add_argument("-c", "--config", required=True, help="path to certminder.yml")
 
     p_check = sub.add_parser("check", help="inspect one host ad hoc")
     p_check.add_argument("host")
@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config: Config = load_config(args.config)
     except ConfigError as exc:
-        print(f"certwatch: {exc}", file=sys.stderr)
+        print(f"certminder: {exc}", file=sys.stderr)
         return 2
 
     if args.command == "once":
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             run_loop(config)
         except KeyboardInterrupt:  # pragma: no cover
-            print("certwatch: stopped", file=sys.stderr)
+            print("certminder: stopped", file=sys.stderr)
         return 0
 
     return 2  # pragma: no cover

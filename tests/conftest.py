@@ -1,10 +1,10 @@
-"""Shared fixtures and helpers for the certwatch test suite."""
+"""Shared fixtures and helpers for the certminder test suite."""
 
 from __future__ import annotations
 
 import pytest
 
-from certwatch.models import CheckResult, Target
+from certminder.models import CheckResult, Target
 
 
 @pytest.fixture

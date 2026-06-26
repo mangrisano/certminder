@@ -7,8 +7,8 @@ import ssl
 import sys
 from email.message import EmailMessage
 
-from certwatch.models import Event, Severity
-from certwatch.notifiers.base import Notifier
+from certminder.models import Event, Severity
+from certminder.notifiers.base import Notifier
 
 # Highest-to-lowest so the subject reflects the worst event in the batch.
 _SEVERITY_RANK = {
@@ -35,7 +35,7 @@ class EmailNotifier(Notifier):
         password: str | None = None,
         use_tls: bool = True,
         use_ssl: bool = False,
-        subject_prefix: str = "[certwatch]",
+        subject_prefix: str = "[certminder]",
         timeout: float = 10.0,
     ):
         if not host:
@@ -79,7 +79,7 @@ class EmailNotifier(Notifier):
         try:
             self._deliver(message)
         except (smtplib.SMTPException, OSError) as exc:
-            print(f"certwatch: email delivery failed: {exc}", file=sys.stderr)
+            print(f"certminder: email delivery failed: {exc}", file=sys.stderr)
 
     def _deliver(self, message: EmailMessage) -> None:
         if self.use_ssl:

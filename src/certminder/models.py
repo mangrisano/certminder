@@ -1,4 +1,4 @@
-"""Data structures shared across certwatch.
+"""Data structures shared across certminder.
 
 These dataclasses are deliberately small and serializable so they can be
 passed to notifiers and written to the state file without ceremony.
@@ -20,7 +20,7 @@ class Severity(str, Enum):
 
 
 class EventKind(str, Enum):
-    """The kinds of change certwatch reports.
+    """The kinds of change certminder reports.
 
     The first group derives from the certificate's own state; ``RECOVERED`` is
     emitted once when a target returns to ``VALID`` after a prior problem.

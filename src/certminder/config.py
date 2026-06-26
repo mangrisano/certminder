@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from certwatch.models import Target
+from certminder.models import Target
 
 _DURATION_RE = re.compile(r"^\s*(\d+)\s*([smhd])\s*$", re.IGNORECASE)
 _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
@@ -42,13 +42,13 @@ class NotifierConfig:
 
 @dataclass
 class Config:
-    """The fully parsed certwatch configuration."""
+    """The fully parsed certminder configuration."""
 
     targets: list[Target]
     notifiers: list[NotifierConfig]
     certinspect_bin: str = "certinspect"
     interval: int = 21600  # 6h
-    state_file: Path = Path("~/.certwatch/state.json")
+    state_file: Path = Path("~/.certminder/state.json")
     concurrency: int = 8
     prometheus_file: Path | None = None
 
@@ -108,7 +108,9 @@ def load_config(path: str | Path) -> Config:
         notifiers=notifiers,
         certinspect_bin=data.get("certinspect_bin", "certinspect"),
         interval=parse_duration(data.get("interval", "6h")),
-        state_file=Path(data.get("state_file", "~/.certwatch/state.json")).expanduser(),
+        state_file=Path(
+            data.get("state_file", "~/.certminder/state.json")
+        ).expanduser(),
         concurrency=int(data.get("concurrency", 8)),
         prometheus_file=(
             Path(data["prometheus_file"]).expanduser()

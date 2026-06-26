@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/mangrisano/certwatch/main/docs/logo.svg" alt="certwatch" width="440">
+<img src="https://raw.githubusercontent.com/mangrisano/certminder/main/docs/logo.svg" alt="certminder" width="440">
 
-[![CI](https://github.com/mangrisano/certwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/mangrisano/certwatch/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/certwatch.svg)](https://pypi.org/project/certwatch/)
-[![Python](https://img.shields.io/pypi/pyversions/certwatch.svg)](https://pypi.org/project/certwatch/)
-[![License: MIT](https://img.shields.io/pypi/l/certwatch.svg)](LICENSE)
+[![CI](https://github.com/mangrisano/certminder/actions/workflows/ci.yml/badge.svg)](https://github.com/mangrisano/certminder/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/certminder.svg)](https://pypi.org/project/certminder/)
+[![Python](https://img.shields.io/pypi/pyversions/certminder.svg)](https://pypi.org/project/certminder/)
+[![License: MIT](https://img.shields.io/pypi/l/certminder.svg)](LICENSE)
 
 **Scheduled checks · Expiry & revocation alerts · Fingerprint change detection · Deduplicated notifications · Console / email / Slack / webhook · Prometheus metrics**
 
-[PyPI](https://pypi.org/project/certwatch/) · [Quick start](#quick-start) · [Configure](#configure) · [Alerts](#what-it-alerts-on) · [Prometheus](#prometheus-metrics) · [Deployment](#deployment) · [Issues](https://github.com/mangrisano/certwatch/issues)
+[PyPI](https://pypi.org/project/certminder/) · [Quick start](#quick-start) · [Configure](#configure) · [Alerts](#what-it-alerts-on) · [Prometheus](#prometheus-metrics) · [Deployment](#deployment) · [Issues](https://github.com/mangrisano/certminder/issues)
 
 </div>
 
@@ -17,14 +17,14 @@
 of [certinspect](https://github.com/mangrisano/certinspect).
 
 `certinspect` tells you what a certificate looks like _right now_.
-`certwatch` runs it on a schedule, remembers what it saw last time, and
+`certminder` runs it on a schedule, remembers what it saw last time, and
 **alerts you when a certificate is about to expire, gets revoked, changes
 fingerprint, or becomes unreachable**.
 
 ## Why a separate tool
 
-certwatch never re-implements TLS or X.509 logic — that all lives in
-certinspect. certwatch adds only what a monitor needs:
+certminder never re-implements TLS or X.509 logic — that all lives in
+certinspect. certminder adds only what a monitor needs:
 
 - a **schedule** (run once for cron, or loop as a daemon),
 - **state memory** to detect _changes_ between runs,
@@ -35,7 +35,7 @@ certinspect. certwatch adds only what a monitor needs:
 ## Install
 
 ```bash
-pip install certwatch       # pulls in certinspect automatically
+pip install certminder       # pulls in certinspect automatically
 # or from source:
 pip install -e '.[dev]'
 ```
@@ -44,21 +44,21 @@ pip install -e '.[dev]'
 
 ```bash
 # inspect a single host ad hoc
-certwatch check example.com
+certminder check example.com
 
 # copy and edit the sample config, then:
-certwatch once -c certwatch.yml     # one cycle — ideal for cron
-certwatch run  -c certwatch.yml     # run continuously as a daemon
+certminder once -c certminder.yml     # one cycle — ideal for cron
+certminder run  -c certminder.yml     # run continuously as a daemon
 ```
 
 ## Configure
 
 Everything is driven by a YAML file (see
-[`certwatch.example.yml`](certwatch.example.yml)):
+[`certminder.example.yml`](certminder.example.yml)):
 
 ```yaml
 interval: 6h
-state_file: ~/.certwatch/state.json
+state_file: ~/.certminder/state.json
 defaults:
   verify: true
   days: 30
@@ -95,7 +95,7 @@ targets:
 | `UNREACHABLE`          | critical | host/handshake failed                      |
 | `RECOVERED`            | info     | a prior problem cleared                    |
 
-Each condition alerts **once**; certwatch remembers it and stays quiet until it
+Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.
 
 ## Exit codes (`once`)
@@ -108,35 +108,35 @@ Add `--json` to `once` to print a machine-readable summary of the cycle (one
 entry per target plus the events) to stdout, handy for piping:
 
 ```bash
-certwatch once -c certwatch.yml --json | jq '.targets[] | {target, status, days_to_expire}'
+certminder once -c certminder.yml --json | jq '.targets[] | {target, status, days_to_expire}'
 ```
 
 ## Prometheus metrics
 
 Set `prometheus_file` in the config to a path inside the node_exporter
 [textfile collector](https://github.com/prometheus/node_exporter#textfile-collector)
-directory. certwatch rewrites it atomically at the end of every cycle:
+directory. certminder rewrites it atomically at the end of every cycle:
 
 ```
-certwatch_certificate_expiry_days{target="example.com:443",host="example.com",port="443",status="VALID"} 42
-certwatch_certificate_valid{...} 1
-certwatch_target_up{...} 1
-certwatch_last_run_timestamp_seconds 1700000000
+certminder_certificate_expiry_days{target="example.com:443",host="example.com",port="443",status="VALID"} 42
+certminder_certificate_valid{...} 1
+certminder_target_up{...} 1
+certminder_last_run_timestamp_seconds 1700000000
 ```
 
 ## Deployment
 
 Ready-to-use units live in [`deploy/`](deploy/) plus a [`Dockerfile`](Dockerfile):
 
-- **systemd timer** — [`certwatch.service`](deploy/systemd/certwatch.service) +
-  [`certwatch.timer`](deploy/systemd/certwatch.timer) run one cycle on a
+- **systemd timer** — [`certminder.service`](deploy/systemd/certminder.service) +
+  [`certminder.timer`](deploy/systemd/certminder.timer) run one cycle on a
   schedule (cron-style, recommended).
-- **systemd daemon** — [`certwatch-daemon.service`](deploy/systemd/certwatch-daemon.service)
+- **systemd daemon** — [`certminder-daemon.service`](deploy/systemd/certminder-daemon.service)
   runs the `run` loop under supervision.
-- **cron** — [`certwatch.cron`](deploy/cron/certwatch.cron) for hosts without
+- **cron** — [`certminder.cron`](deploy/cron/certminder.cron) for hosts without
   systemd timers.
-- **Docker** — multi-stage build; mount your `certwatch.yml` at
-  `/etc/certwatch/certwatch.yml` and a volume at `/var/lib/certwatch`.
+- **Docker** — multi-stage build; mount your `certminder.yml` at
+  `/etc/certminder/certminder.yml` and a volume at `/var/lib/certminder`.
 
 ## Development
 

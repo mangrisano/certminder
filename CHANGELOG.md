@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial scaffold of certwatch, the continuous TLS monitoring layer on top of
+- Initial scaffold of certminder, the continuous TLS monitoring layer on top of
   certinspect.
 - `engine`: invoke certinspect per target (`--json`) and normalise its exit
   code into a status.
@@ -37,6 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certwatch/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/mangrisano/certwatch/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/mangrisano/certwatch/releases/tag/v0.1.0
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mangrisano/certminder/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/mangrisano/certminder/releases/tag/v0.1.0

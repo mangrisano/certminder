@@ -1,0 +1,13 @@
+# Sample cron job for certminder — an alternative to the systemd timer.
+# Install as /etc/cron.d/certminder (note the user field, required in cron.d).
+#
+#   sudo install -Dm644 deploy/cron/certminder.cron /etc/cron.d/certminder
+#
+# Runs one inspection cycle at 06:00 and 18:00 every day as the `certminder`
+# user. certminder exits 0 when nothing happened and 1 when events were emitted;
+# cron ignores the code, so rely on the configured notifiers for alerting.
+
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 6,18 * * * certminder /usr/local/bin/certminder once -c /etc/certminder/certminder.yml

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import subprocess
 
-from certwatch.engine import build_command, check_target
-from certwatch.models import Target
+from certminder.engine import build_command, check_target
+from certminder.models import Target
 
 
 def test_build_command_includes_flags():

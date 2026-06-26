@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from certwatch.config import ConfigError, load_config, parse_duration
+from certminder.config import ConfigError, load_config, parse_duration
 
 
 @pytest.mark.parametrize(
@@ -21,7 +21,7 @@ def test_parse_duration_invalid():
 
 
 def _write(tmp_path, text):
-    path = tmp_path / "certwatch.yml"
+    path = tmp_path / "certminder.yml"
     path.write_text(text)
     return path
 

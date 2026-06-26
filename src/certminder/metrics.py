@@ -12,7 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from certwatch.models import CheckResult
+from certminder.models import CheckResult
 
 
 def _escape_label(value: str) -> str:
@@ -36,36 +36,36 @@ def render(results: list[CheckResult], *, now: float | None = None) -> str:
     """Build the Prometheus exposition text for ``results``."""
     timestamp = time.time() if now is None else now
     lines: list[str] = [
-        "# HELP certwatch_certificate_expiry_days Days until the certificate expires.",
-        "# TYPE certwatch_certificate_expiry_days gauge",
+        "# HELP certminder_certificate_expiry_days Days until the certificate expires.",
+        "# TYPE certminder_certificate_expiry_days gauge",
     ]
     for result in results:
         if result.days_to_expire is not None:
             lines.append(
-                f"certwatch_certificate_expiry_days{_labels(result)} "
+                f"certminder_certificate_expiry_days{_labels(result)} "
                 f"{result.days_to_expire}"
             )
 
     lines += [
-        "# HELP certwatch_certificate_valid Whether the certificate is currently valid (1) or not (0).",
-        "# TYPE certwatch_certificate_valid gauge",
+        "# HELP certminder_certificate_valid Whether the certificate is currently valid (1) or not (0).",
+        "# TYPE certminder_certificate_valid gauge",
     ]
     for result in results:
         valid = 1 if result.status == "VALID" else 0
-        lines.append(f"certwatch_certificate_valid{_labels(result)} {valid}")
+        lines.append(f"certminder_certificate_valid{_labels(result)} {valid}")
 
     lines += [
-        "# HELP certwatch_target_up Whether the target was reachable this cycle (1) or not (0).",
-        "# TYPE certwatch_target_up gauge",
+        "# HELP certminder_target_up Whether the target was reachable this cycle (1) or not (0).",
+        "# TYPE certminder_target_up gauge",
     ]
     for result in results:
         up = 1 if result.reachable else 0
-        lines.append(f"certwatch_target_up{_labels(result)} {up}")
+        lines.append(f"certminder_target_up{_labels(result)} {up}")
 
     lines += [
-        "# HELP certwatch_last_run_timestamp_seconds Unix time of the last completed cycle.",
-        "# TYPE certwatch_last_run_timestamp_seconds gauge",
-        f"certwatch_last_run_timestamp_seconds {timestamp:.0f}",
+        "# HELP certminder_last_run_timestamp_seconds Unix time of the last completed cycle.",
+        "# TYPE certminder_last_run_timestamp_seconds gauge",
+        f"certminder_last_run_timestamp_seconds {timestamp:.0f}",
     ]
     return "\n".join(lines) + "\n"
 

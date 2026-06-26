@@ -1,0 +1,40 @@
+# certminder as a long-running daemon (the `run` subcommand sleeps `interval`
+# between cycles). Prefer this over the timer when you want certminder to own
+# its own schedule, e.g. in a container or on a host without systemd timers.
+#
+# Install:
+#   sudo cp deploy/systemd/certminder-daemon.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now certminder-daemon.service
+
+[Unit]
+Description=certminder — continuous TLS certificate monitor
+Documentation=https://github.com/mangrisano/certminder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=certminder
+Group=certminder
+ExecStart=/usr/local/bin/certminder run -c /etc/certminder/certminder.yml
+Restart=on-failure
+RestartSec=30
+
+StateDirectory=certminder
+StateDirectoryMode=0750
+
+# Hardening (see certminder.service for rationale).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

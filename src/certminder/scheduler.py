@@ -6,13 +6,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
-from certwatch.config import Config
-from certwatch.engine import check_target
-from certwatch.evaluator import evaluate
-from certwatch.metrics import write_prometheus
-from certwatch.models import CheckResult, Event
-from certwatch.notifiers import Notifier, build_notifier
-from certwatch.state import StateStore
+from certminder.config import Config
+from certminder.engine import check_target
+from certminder.evaluator import evaluate
+from certminder.metrics import write_prometheus
+from certminder.models import CheckResult, Event
+from certminder.notifiers import Notifier, build_notifier
+from certminder.state import StateStore
 
 
 @dataclass

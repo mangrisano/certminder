@@ -1,6 +1,6 @@
 """Run certinspect against a target and normalise its result.
 
-certwatch never re-implements TLS or X.509 logic: it shells out to certinspect
+certminder never re-implements TLS or X.509 logic: it shells out to certinspect
 (one target per invocation, ``--json``) and trusts its exit code as the
 authoritative status. The exit-code contract is:
 
@@ -15,7 +15,7 @@ import json
 import subprocess
 from typing import Any
 
-from certwatch.models import CheckResult, Target
+from certminder.models import CheckResult, Target
 
 # Exit codes that still produce a usable JSON document (the certificate was
 # fetched and analysed; it simply has a problem).
@@ -49,7 +49,7 @@ def build_command(bin_path: str, target: Target) -> list[str]:
 
 
 def _status_from(exit_code: int, info: dict[str, Any]) -> str:
-    """Refine certinspect's exit code into a certwatch status string."""
+    """Refine certinspect's exit code into a certminder status string."""
     if exit_code == 0:
         return "VALID"
     if exit_code == 3:
