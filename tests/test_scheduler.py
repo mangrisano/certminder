@@ -7,7 +7,7 @@ import json
 from certminder.config import Config, NotifierConfig
 from certminder.models import Target
 from certminder.scheduler import run_once
-from tests.conftest import make_result
+from conftest import make_result
 
 
 def _config(tmp_path, prometheus=False) -> Config:

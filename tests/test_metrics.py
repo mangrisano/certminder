@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from certminder.metrics import render, write_prometheus
 from certminder.models import Target
-from tests.conftest import make_result
+from conftest import make_result
 
 
 def _result(status: str, **kwargs):
