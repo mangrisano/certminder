@@ -11,3 +11,6 @@ dist/
 # local runtime state
 state.json
 *.state.json
+
+# local-only Copilot instructions / GitHub workspace files
+.github/
