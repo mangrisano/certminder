@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+
 ### Added
 
 - Email (SMTP) notifier with STARTTLS/implicit-TLS and optional authentication.
@@ -16,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   status and emitted events) to stdout.
 - Deployment assets: systemd timer + oneshot service, a daemon service, a
   sample cron job, and a multi-stage `Dockerfile`.
+- Project logo and GitHub Actions workflows for CI and PyPI trusted publishing.
 
 ## [0.1.0] - 2026-06-26
 
@@ -34,5 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certwatch/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certwatch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mangrisano/certwatch/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mangrisano/certwatch/releases/tag/v0.1.0
