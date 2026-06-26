@@ -9,11 +9,13 @@ from __future__ import annotations
 
 from certwatch.notifiers.base import Notifier
 from certwatch.notifiers.console import ConsoleNotifier
+from certwatch.notifiers.email import EmailNotifier
 from certwatch.notifiers.slack import SlackNotifier
 from certwatch.notifiers.webhook import WebhookNotifier
 
 REGISTRY: dict[str, type[Notifier]] = {
     "console": ConsoleNotifier,
+    "email": EmailNotifier,
     "slack": SlackNotifier,
     "webhook": WebhookNotifier,
 }
