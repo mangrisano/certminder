@@ -15,6 +15,11 @@ state_file: ~/.certwatch/state.json
 # How many targets to inspect in parallel each cycle.
 concurrency: 8
 
+# Optional: write Prometheus metrics for the node_exporter textfile collector.
+# Point this at a file inside --collector.textfile.directory. Rewritten
+# atomically at the end of every cycle. Omit to disable.
+prometheus_file: /var/lib/node_exporter/textfile/certwatch.prom
+
 # Applied to every target unless the target overrides them.
 defaults:
   port: 443
@@ -33,6 +38,15 @@ notifiers:
     # optional extra headers, e.g. an auth token
     headers:
       Authorization: "Bearer CHANGE_ME"
+  - type: email
+    host: smtp.example.com
+    port: 587            # 587 STARTTLS (use_tls) or 465 implicit TLS (use_ssl)
+    use_tls: true
+    username: alerts@example.com
+    password: CHANGE_ME
+    from_addr: alerts@example.com
+    to:
+      - ops@example.com
 
 # The certificates to watch.
 targets:

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Email (SMTP) notifier with STARTTLS/implicit-TLS and optional authentication.
+- Optional Prometheus textfile output (`prometheus_file`) exposing per-target
+  expiry, validity and reachability gauges for the node_exporter collector.
+- `once --json` prints a machine-readable summary of the cycle (per-target
+  status and emitted events) to stdout.
+- Deployment assets: systemd timer + oneshot service, a daemon service, a
+  sample cron job, and a multi-stage `Dockerfile`.
+
 ## [0.1.0] - 2026-06-26
 
 ### Added

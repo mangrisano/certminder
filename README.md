@@ -16,7 +16,8 @@ certinspect. certwatch adds only what a monitor needs:
 - a **schedule** (run once for cron, or loop as a daemon),
 - **state memory** to detect _changes_ between runs,
 - **deduplicated alerts** (notify once per condition, recover once),
-- pluggable **notifiers** (console, Slack, generic webhook).
+- pluggable **notifiers** (console, email, Slack, generic webhook),
+- optional **Prometheus** metrics for the node_exporter textfile collector.
 
 ## Install
 
@@ -53,6 +54,13 @@ notifiers:
   - type: console
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+  - type: email
+    host: smtp.example.com
+    port: 587
+    username: alerts@example.com
+    password: CHANGE_ME
+    from_addr: alerts@example.com
+    to: [ops@example.com]
 targets:
   - host: example.com
   - host: api.example.com
@@ -82,6 +90,40 @@ changes, then sends a single recovery notice.
 - `0` — no events this cycle
 - `1` — at least one event was emitted
 - `2` — configuration error
+
+Add `--json` to `once` to print a machine-readable summary of the cycle (one
+entry per target plus the events) to stdout, handy for piping:
+
+```bash
+certwatch once -c certwatch.yml --json | jq '.targets[] | {target, status, days_to_expire}'
+```
+
+## Prometheus metrics
+
+Set `prometheus_file` in the config to a path inside the node_exporter
+[textfile collector](https://github.com/prometheus/node_exporter#textfile-collector)
+directory. certwatch rewrites it atomically at the end of every cycle:
+
+```
+certwatch_certificate_expiry_days{target="example.com:443",host="example.com",port="443",status="VALID"} 42
+certwatch_certificate_valid{...} 1
+certwatch_target_up{...} 1
+certwatch_last_run_timestamp_seconds 1700000000
+```
+
+## Deployment
+
+Ready-to-use units live in [`deploy/`](deploy/) plus a [`Dockerfile`](Dockerfile):
+
+- **systemd timer** — [`certwatch.service`](deploy/systemd/certwatch.service) +
+  [`certwatch.timer`](deploy/systemd/certwatch.timer) run one cycle on a
+  schedule (cron-style, recommended).
+- **systemd daemon** — [`certwatch-daemon.service`](deploy/systemd/certwatch-daemon.service)
+  runs the `run` loop under supervision.
+- **cron** — [`certwatch.cron`](deploy/cron/certwatch.cron) for hosts without
+  systemd timers.
+- **Docker** — multi-stage build; mount your `certwatch.yml` at
+  `/etc/certwatch/certwatch.yml` and a volume at `/var/lib/certwatch`.
 
 ## Development
 
