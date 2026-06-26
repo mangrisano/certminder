@@ -1,0 +1,13 @@
+# Sample cron job for certwatch — an alternative to the systemd timer.
+# Install as /etc/cron.d/certwatch (note the user field, required in cron.d).
+#
+#   sudo install -Dm644 deploy/cron/certwatch.cron /etc/cron.d/certwatch
+#
+# Runs one inspection cycle at 06:00 and 18:00 every day as the `certwatch`
+# user. certwatch exits 0 when nothing happened and 1 when events were emitted;
+# cron ignores the code, so rely on the configured notifiers for alerting.
+
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 6,18 * * * certwatch /usr/local/bin/certwatch once -c /etc/certwatch/certwatch.yml

@@ -1,0 +1,15 @@
+# Trigger certwatch.service twice a day, with a small random delay to avoid a
+# thundering herd against the monitored endpoints. Persistent=true catches up
+# on a missed run after downtime.
+
+[Unit]
+Description=Run certwatch periodically
+Documentation=https://github.com/mangrisano/certwatch
+
+[Timer]
+OnCalendar=*-*-* 06,18:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

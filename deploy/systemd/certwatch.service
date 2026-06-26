@@ -1,0 +1,40 @@
+# certwatch as a periodic systemd timer (cron-style: one cycle per trigger).
+#
+# Install:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin certwatch
+#   sudo install -Dm644 certwatch.example.yml /etc/certwatch/certwatch.yml
+#   sudo cp deploy/systemd/certwatch.service deploy/systemd/certwatch.timer \
+#           /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now certwatch.timer
+#
+# Inspect:  systemctl list-timers certwatch.timer
+#           journalctl -u certwatch.service
+
+[Unit]
+Description=certwatch — one TLS certificate inspection cycle
+Documentation=https://github.com/mangrisano/certwatch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=certwatch
+Group=certwatch
+ExecStart=/usr/local/bin/certwatch once -c /etc/certwatch/certwatch.yml
+
+# State lives in /var/lib/certwatch (set state_file there in certwatch.yml).
+StateDirectory=certwatch
+StateDirectoryMode=0750
+
+# Hardening: certwatch only needs the network and its state directory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
