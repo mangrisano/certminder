@@ -50,6 +50,7 @@ class Config:
     interval: int = 21600  # 6h
     state_file: Path = Path("~/.certwatch/state.json")
     concurrency: int = 8
+    prometheus_file: Path | None = None
 
 
 def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
@@ -109,4 +110,9 @@ def load_config(path: str | Path) -> Config:
         interval=parse_duration(data.get("interval", "6h")),
         state_file=Path(data.get("state_file", "~/.certwatch/state.json")).expanduser(),
         concurrency=int(data.get("concurrency", 8)),
+        prometheus_file=(
+            Path(data["prometheus_file"]).expanduser()
+            if data.get("prometheus_file")
+            else None
+        ),
     )

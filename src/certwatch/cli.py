@@ -9,6 +9,7 @@ Subcommands:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from certwatch import __version__
@@ -30,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_once = sub.add_parser("once", help="run a single inspection cycle and exit")
     p_once.add_argument("-c", "--config", required=True, help="path to certwatch.yml")
+    p_once.add_argument(
+        "--json",
+        action="store_true",
+        help="print a JSON summary of the cycle to stdout",
+    )
 
     p_run = sub.add_parser("run", help="run continuously as a daemon")
     p_run.add_argument("-c", "--config", required=True, help="path to certwatch.yml")
@@ -75,8 +81,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.command == "once":
-        events = run_once(config)
-        return 1 if events else 0
+        report = run_once(config)
+        if args.json:
+            print(json.dumps(report.to_dict(), indent=2))
+        return 1 if report.events else 0
 
     if args.command == "run":
         try:
