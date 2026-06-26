@@ -149,4 +149,4 @@ Tests mock the certinspect subprocess, so the suite never touches the network.
 
 ## License
 
-MIT © Michele Angrisano
+MIT — see [LICENSE](LICENSE).
