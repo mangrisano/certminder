@@ -1,0 +1,52 @@
+# How certinspect is invoked, and the meaning of its exit codes, is the
+# contract certwatch depends on. Keep this file as the single source of truth
+# for operators: edit targets and notifiers here, not in code.
+
+# Path or name of the certinspect executable (must be on PATH or absolute).
+certinspect_bin: certinspect
+
+# How often the watch loop runs. Accepts s/m/h/d suffixes (e.g. 30m, 6h, 1d).
+interval: 6h
+
+# Where the per-target state (last fingerprint, last status, sent alerts) is
+# persisted between runs. '~' is expanded.
+state_file: ~/.certwatch/state.json
+
+# How many targets to inspect in parallel each cycle.
+concurrency: 8
+
+# Applied to every target unless the target overrides them.
+defaults:
+  port: 443
+  verify: true        # run certinspect --verify (chain + OCSP/CRL revocation)
+  days: 30            # EXPIRING window (certinspect --days)
+  critical_days: 15   # CRITICAL window (certinspect --critical-days)
+  timeout: 5
+
+# Alert sinks. Every notifier receives every event in a cycle.
+notifiers:
+  - type: console
+  - type: slack
+    webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+  - type: webhook
+    url: "https://example.com/certwatch-hook"
+    # optional extra headers, e.g. an auth token
+    headers:
+      Authorization: "Bearer CHANGE_ME"
+
+# The certificates to watch.
+targets:
+  - host: example.com
+
+  - host: api.example.com
+    port: 8443
+    label: "Public API"
+
+  - host: mail.example.com
+    starttls: smtp        # one of: smtp, imap, pop3, ftp
+    days: 45
+
+  - host: internal.corp.example
+    verify: true
+    # certinspect supports --cafile/--capath for private PKIs; pass them here
+    cafile: /etc/ssl/internal-ca.pem
