@@ -1,4 +1,17 @@
-# certwatch
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/mangrisano/certwatch/main/docs/logo.svg" alt="certwatch" width="440">
+
+[![CI](https://github.com/mangrisano/certwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/mangrisano/certwatch/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/certwatch.svg)](https://pypi.org/project/certwatch/)
+[![Python](https://img.shields.io/pypi/pyversions/certwatch.svg)](https://pypi.org/project/certwatch/)
+[![License: MIT](https://img.shields.io/pypi/l/certwatch.svg)](LICENSE)
+
+**Scheduled checks · Expiry & revocation alerts · Fingerprint change detection · Deduplicated notifications · Console / email / Slack / webhook · Prometheus metrics**
+
+[PyPI](https://pypi.org/project/certwatch/) · [Quick start](#quick-start) · [Configure](#configure) · [Alerts](#what-it-alerts-on) · [Prometheus](#prometheus-metrics) · [Deployment](#deployment) · [Issues](https://github.com/mangrisano/certwatch/issues)
+
+</div>
 
 **Continuous TLS certificate monitoring and alerting** — the watch loop on top
 of [certinspect](https://github.com/mangrisano/certinspect).

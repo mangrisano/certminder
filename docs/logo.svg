@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" role="img" aria-label="certwatch">
+    <title>certwatch</title>
+    <rect x="3" y="3" width="754" height="194" rx="30" fill="#0f172a" stroke="#1e293b" stroke-width="3"/>
+    <!-- watch face / radar over a certificate -->
+    <g transform="translate(108,100)">
+        <!-- concentric monitoring rings -->
+        <g fill="none" stroke="#f59e0b" stroke-width="7">
+            <circle r="46"/>
+            <circle r="31"/>
+        </g>
+        <!-- clock / radar hands sweeping -->
+        <g stroke="#f59e0b" stroke-width="8" stroke-linecap="round">
+            <line x1="0" y1="0" x2="0" y2="-30"/>
+            <line x1="0" y1="0" x2="22" y2="14"/>
+        </g>
+        <circle r="6" fill="#f59e0b"/>
+        <!-- alert blip -->
+        <circle cx="40" cy="-40" r="9" fill="#ef4444" stroke="#0f172a" stroke-width="3"/>
+    </g>
+    <text x="206" y="106" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="62" font-weight="700">
+        <tspan fill="#f59e0b">cert</tspan>
+        <tspan fill="#e2e8f0">watch</tspan>
+    </text>
+    <text x="208" y="152" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="22" letter-spacing="2" fill="#94a3b8">tls certificate monitor</text>
+</svg>
