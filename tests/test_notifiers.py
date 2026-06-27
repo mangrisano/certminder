@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from certminder.models import Event, EventKind, Severity
 from certminder.notifiers import REGISTRY, build_notifier
+from certminder.notifiers.console import ConsoleNotifier
 from certminder.notifiers.email import EmailNotifier
 
 
@@ -25,6 +28,19 @@ def test_registry_exposes_email():
 def test_build_notifier_unknown_type():
     with pytest.raises(ValueError):
         build_notifier("does-not-exist", {})
+
+
+def test_console_no_timestamp_by_default(capsys):
+    ConsoleNotifier().send([_event(Severity.CRITICAL, "x: down")])
+    assert capsys.readouterr().err.strip() == "[crit] x: down"
+
+
+def test_console_timestamp_prefixes_each_line(capsys):
+    build_notifier("console", {"timestamp": True}).send(
+        [_event(Severity.CRITICAL, "x: down")]
+    )
+    line = capsys.readouterr().err.strip()
+    assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[crit\] x: down$", line)
 
 
 def test_email_requires_core_options():

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `timestamp` flag on the console notifier: prefixes each line with the
+  local date and time, useful when the output is collected into a log.
+- README: Docker and Docker Compose deployment instructions (build, single
+  cycle, daemon with a persistent state volume, and a ready-to-use Compose
+  file).
+
 ## [0.2.0] - 2026-06-26
 
 ### Added

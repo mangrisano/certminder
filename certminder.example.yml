@@ -31,6 +31,7 @@ defaults:
 # Alert sinks. Every notifier receives every event in a cycle.
 notifiers:
   - type: console
+    # timestamp: true   # prefix each line with the local date and time
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
   - type: webhook
