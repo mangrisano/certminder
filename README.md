@@ -5,6 +5,7 @@
 [![CI](https://github.com/mangrisano/certminder/actions/workflows/ci.yml/badge.svg)](https://github.com/mangrisano/certminder/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/certminder?logo=pypi&logoColor=white)](https://pypi.org/project/certminder/)
 [![Python](https://img.shields.io/pypi/pyversions/certminder?logo=python&logoColor=white)](https://pypi.org/project/certminder/)
+[![Downloads](https://static.pepy.tech/badge/certminder)](https://pepy.tech/project/certminder)
 [![License: MIT](https://img.shields.io/pypi/l/certminder?color=blue)](LICENSE)
 
 **Scheduled checks · Expiry & revocation alerts · Fingerprint change detection · Deduplicated notifications · Console / email / Slack / webhook · Prometheus metrics**
