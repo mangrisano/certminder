@@ -3,8 +3,8 @@
 <img src="https://raw.githubusercontent.com/mangrisano/certminder/main/docs/logo.svg" alt="certminder" width="440">
 
 [![CI](https://github.com/mangrisano/certminder/actions/workflows/ci.yml/badge.svg)](https://github.com/mangrisano/certminder/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/certminder?logo=pypi&logoColor=white)](https://pypi.org/project/certminder/)
-[![Python](https://img.shields.io/pypi/pyversions/certminder?logo=python&logoColor=white)](https://pypi.org/project/certminder/)
+[![PyPI](https://img.shields.io/pypi/v/certminder?logo=pypi&logoColor=white&cacheSeconds=3600)](https://pypi.org/project/certminder/)
+[![Python](https://img.shields.io/pypi/pyversions/certminder?logo=python&logoColor=white&cacheSeconds=3600)](https://pypi.org/project/certminder/)
 [![Downloads](https://static.pepy.tech/badge/certminder)](https://pepy.tech/project/certminder)
 [![License: MIT](https://img.shields.io/pypi/l/certminder?color=blue)](LICENSE)
 
