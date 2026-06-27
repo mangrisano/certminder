@@ -138,6 +138,68 @@ Ready-to-use units live in [`deploy/`](deploy/) plus a [`Dockerfile`](Dockerfile
 - **Docker** — multi-stage build; mount your `certminder.yml` at
   `/etc/certminder/certminder.yml` and a volume at `/var/lib/certminder`.
 
+### Docker
+
+Build the image:
+
+```bash
+docker build -t certminder .
+```
+
+Run a single cycle (cron-style — config and state mounted from the host):
+
+```bash
+docker run --rm \
+  -v "$PWD/certminder.yml:/etc/certminder/certminder.yml:ro" \
+  -v certminder-state:/var/lib/certminder \
+  certminder once -c /etc/certminder/certminder.yml
+```
+
+Run continuously as a daemon (this is the default `CMD`):
+
+```bash
+docker run -d --name certminder \
+  --restart unless-stopped \
+  -v "$PWD/certminder.yml:/etc/certminder/certminder.yml:ro" \
+  -v certminder-state:/var/lib/certminder \
+  certminder
+```
+
+The named volume `certminder-state` persists `state.json` and the Prometheus
+file across restarts — keep it so deduplication survives container recreation.
+The console notifier prints to stdout; read it with `docker logs -f certminder`
+(timestamps from Docker with `-t`, or set `timestamp: true` on the console
+notifier). The container runs in **UTC**.
+
+### Docker Compose
+
+```yaml
+services:
+  certminder:
+    build: . # or: image: certminder
+    container_name: certminder
+    restart: unless-stopped
+    command: run -c /etc/certminder/certminder.yml
+    volumes:
+      - ./certminder.yml:/etc/certminder/certminder.yml:ro
+      - certminder-state:/var/lib/certminder
+    logging: # cap the daemon's logs so they don't grow without bound
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  certminder-state:
+```
+
+```bash
+docker compose up -d            # build (if needed) and start the daemon
+docker compose logs -f certminder
+docker compose up -d --build    # rebuild after upgrading certminder/certinspect
+docker compose down             # stop and remove
+```
+
 ## Development
 
 ```bash
