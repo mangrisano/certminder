@@ -210,6 +210,15 @@ pytest -q
 
 Tests mock the certinspect subprocess, so the suite never touches the network.
 
+## Support
+
+If certminder is useful to you, the best ways to support it are:
+
+- Star the repo to help others discover it
+- [Open an issue](https://github.com/mangrisano/certminder/issues) for bugs or ideas
+- Send a pull request
+- Share it with others who monitor TLS certificates
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
