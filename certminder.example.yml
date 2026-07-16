@@ -27,6 +27,10 @@ defaults:
   days: 30            # EXPIRING window (certinspect --days)
   critical_days: 15   # CRITICAL window (certinspect --critical-days)
   timeout: 5
+  # Optional maximum-validity policy (certinspect exit code 9 ->
+  # POLICY_VIOLATION). Use ONE of the two:
+  #   cab_forum: true      # date-aware CA/Browser Forum cap (398->200->100->47)
+  #   not_after_max: 47    # or pin an explicit limit in days
 
 # Alert sinks. Every notifier receives every event in a cycle.
 notifiers:
@@ -60,6 +64,9 @@ targets:
   - host: mail.example.com
     starttls: smtp        # one of: smtp, imap, pop3, ftp
     days: 45
+
+  - host: short-lived.example.com
+    cab_forum: true       # fail if validity exceeds today's CA/B Forum maximum
 
   - host: internal.corp.example
     verify: true

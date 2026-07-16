@@ -81,20 +81,23 @@ targets:
     port: 8443
   - host: mail.example.com
     starttls: smtp
+  - host: short-lived.example.com
+    cab_forum: true # fail if validity exceeds today's CA/Browser Forum cap
 ```
 
 ## What it alerts on
 
-| Event                  | Severity | Trigger                                    |
-| ---------------------- | -------- | ------------------------------------------ |
-| `EXPIRING`             | warning  | within `--days` of expiry                  |
-| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired |
-| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)     |
-| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                    |
-| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname           |
-| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle        |
-| `UNREACHABLE`          | critical | host/handshake failed                      |
-| `RECOVERED`            | info     | a prior problem cleared                    |
+| Event                  | Severity | Trigger                                      |
+| ---------------------- | -------- | -------------------------------------------- |
+| `EXPIRING`             | warning  | within `--days` of expiry                    |
+| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired   |
+| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)       |
+| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                      |
+| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname             |
+| `POLICY_VIOLATION`     | critical | validity exceeds `cab_forum`/`not_after_max` |
+| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle          |
+| `UNREACHABLE`          | critical | host/handshake failed                        |
+| `RECOVERED`            | info     | a prior problem cleared                      |
 
 Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.

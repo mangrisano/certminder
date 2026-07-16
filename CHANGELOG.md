@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Maximum-validity policy per target: `cab_forum: true` enforces the date-aware
+  CA/Browser Forum cap (398 → 200 → 100 → 47 days) via certinspect's
+  `--cab-forum`, or `not_after_max: N` pins an explicit limit. A breach surfaces
+  certinspect's exit code 9 as the new `POLICY_VIOLATION` status/event
+  (critical). The two options are mutually exclusive.
+
 ## [0.3.0] - 2026-06-27
 
 ### Added
