@@ -19,6 +19,27 @@ def test_build_command_includes_flags():
     assert "8443" in cmd
 
 
+def test_build_command_includes_not_after_max():
+    target = Target(host="example.com", not_after_max=47)
+    cmd = build_command("certinspect", target)
+    assert "--not-after-max" in cmd and "47" in cmd
+
+
+def test_build_command_includes_cab_forum():
+    target = Target(host="example.com", cab_forum=True)
+    cmd = build_command("certinspect", target)
+    assert "--cab-forum" in cmd
+    assert "--not-after-max" not in cmd
+
+
+def test_build_command_cab_forum_takes_precedence():
+    # Config validation forbids setting both, but the builder favours the
+    # date-aware flag defensively if they ever coexist.
+    target = Target(host="example.com", cab_forum=True, not_after_max=100)
+    cmd = build_command("certinspect", target)
+    assert "--cab-forum" in cmd and "--not-after-max" not in cmd
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(
@@ -64,6 +85,22 @@ def test_check_chain_untrusted(monkeypatch):
     monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 6))
     result = check_target(Target(host="example.com"))
     assert result.status == "CHAIN_UNTRUSTED"
+
+
+def test_check_policy_violation(monkeypatch):
+    info = [
+        {
+            "days_to_expire": 300,
+            "policy_violations": [
+                "total validity 501 days exceeds the 200-day maximum"
+            ],
+        }
+    ]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 9))
+    result = check_target(Target(host="example.com", cab_forum=True))
+    assert result.status == "POLICY_VIOLATION"
+    assert result.reachable is True
+    assert result.raw["policy_violations"]
 
 
 def test_check_unreachable(monkeypatch):

@@ -35,6 +35,22 @@ def test_critical_severity(target):
     assert events[0].severity is Severity.CRITICAL
 
 
+def test_policy_violation_emits_critical(target):
+    result = make_result(
+        target,
+        "POLICY_VIOLATION",
+        exit_code=9,
+        raw={
+            "policy_violations": ["total validity 501 days exceeds the 200-day maximum"]
+        },
+    )
+    events, _ = evaluate(result, TargetState(fingerprint="AA:BB"))
+    assert len(events) == 1
+    assert events[0].kind is EventKind.POLICY_VIOLATION
+    assert events[0].severity is Severity.CRITICAL
+    assert "200-day maximum" in events[0].message
+
+
 def test_fingerprint_change_emits_event(target):
     result = make_result(target, "VALID", fingerprint="CC:DD")
     events, state = evaluate(result, TargetState(fingerprint="AA:BB"))

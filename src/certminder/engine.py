@@ -6,6 +6,7 @@ authoritative status. The exit-code contract is:
 
     0 VALID            3 EXPIRING          4 CRITICAL / EXPIRED / INVALID DATES
     5 HOSTNAME mismatch  6 chain untrusted or REVOKED   7 pin mismatch
+    9 policy violation (max validity / CA-Browser-Forum cap)
     1 runtime error (e.g. unreachable)   2 usage error
 """
 
@@ -19,7 +20,7 @@ from certminder.models import CheckResult, Target
 
 # Exit codes that still produce a usable JSON document (the certificate was
 # fetched and analysed; it simply has a problem).
-_ANALYSED_CODES = {0, 3, 4, 5, 6, 7}
+_ANALYSED_CODES = {0, 3, 4, 5, 6, 7, 9}
 
 
 def build_command(bin_path: str, target: Target) -> list[str]:
@@ -45,6 +46,12 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd += ["--cafile", target.cafile]
     if target.capath:
         cmd += ["--capath", target.capath]
+    # Opt-in maximum-validity policy: --cab-forum tracks the shrinking
+    # CA/Browser Forum cap by date, --not-after-max pins an explicit limit.
+    if target.cab_forum:
+        cmd.append("--cab-forum")
+    elif target.not_after_max is not None:
+        cmd += ["--not-after-max", str(target.not_after_max)]
     return cmd
 
 
@@ -67,6 +74,8 @@ def _status_from(exit_code: int, info: dict[str, Any]) -> str:
         return "CHAIN_UNTRUSTED"
     if exit_code == 7:
         return "PIN_MISMATCH"
+    if exit_code == 9:
+        return "POLICY_VIOLATION"
     return "UNREACHABLE"
 
 

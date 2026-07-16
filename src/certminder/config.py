@@ -67,11 +67,17 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
         "starttls",
         "cafile",
         "capath",
+        "not_after_max",
+        "cab_forum",
         "label",
     }
     unknown = set(merged) - allowed
     if unknown:
         raise ConfigError(f"unknown target keys {sorted(unknown)} in {raw!r}")
+    if merged.get("cab_forum") and merged.get("not_after_max") is not None:
+        raise ConfigError(
+            f"'cab_forum' and 'not_after_max' are mutually exclusive in {raw!r}"
+        )
     return Target(**merged)
 
 

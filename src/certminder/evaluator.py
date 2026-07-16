@@ -20,6 +20,7 @@ _STATUS_EVENTS: dict[str, tuple[EventKind, Severity]] = {
     "REVOKED": (EventKind.REVOKED, Severity.CRITICAL),
     "CHAIN_UNTRUSTED": (EventKind.CHAIN_UNTRUSTED, Severity.CRITICAL),
     "HOSTNAME_MISMATCH": (EventKind.HOSTNAME_MISMATCH, Severity.CRITICAL),
+    "POLICY_VIOLATION": (EventKind.POLICY_VIOLATION, Severity.CRITICAL),
 }
 
 _PROBLEM_STATUSES = set(_STATUS_EVENTS) | {"UNREACHABLE", "ERROR"}
@@ -38,6 +39,10 @@ def _message(result: CheckResult) -> str:
         return f"{name}: certificate chain is not trusted"
     if result.status == "HOSTNAME_MISMATCH":
         return f"{name}: certificate does not match the hostname"
+    if result.status == "POLICY_VIOLATION":
+        violations = result.raw.get("policy_violations") or []
+        detail = "; ".join(violations) if violations else "policy constraints not met"
+        return f"{name}: certificate violates policy ({detail})"
     return f"{name}: {result.status.lower()}"
 
 

@@ -32,6 +32,7 @@ class EventKind(str, Enum):
     REVOKED = "revoked"
     CHAIN_UNTRUSTED = "chain_untrusted"
     HOSTNAME_MISMATCH = "hostname_mismatch"
+    POLICY_VIOLATION = "policy_violation"
     FINGERPRINT_CHANGED = "fingerprint_changed"
     UNREACHABLE = "unreachable"
     RECOVERED = "recovered"
@@ -50,6 +51,8 @@ class Target:
     starttls: str | None = None
     cafile: str | None = None
     capath: str | None = None
+    not_after_max: int | None = None
+    cab_forum: bool = False
     label: str | None = None
 
     @property

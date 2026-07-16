@@ -84,6 +84,36 @@ def test_unknown_target_key_is_error(tmp_path):
         load_config(path)
 
 
+def test_cab_forum_target_key(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            cab_forum: true
+          - host: api.example.com
+            not_after_max: 47
+        """,
+    )
+    config = load_config(path)
+    assert config.targets[0].cab_forum is True
+    assert config.targets[1].not_after_max == 47
+
+
+def test_cab_forum_and_not_after_max_conflict(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            cab_forum: true
+            not_after_max: 47
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
 def test_missing_file_is_error(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yml")
