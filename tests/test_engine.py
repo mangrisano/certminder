@@ -40,6 +40,26 @@ def test_build_command_cab_forum_takes_precedence():
     assert "--cab-forum" in cmd and "--not-after-max" not in cmd
 
 
+def test_build_command_includes_new_policy_flags():
+    target = Target(
+        host="example.com",
+        require_sct=True,
+        require_must_staple=True,
+        min_tls_version="TLSv1.2",
+    )
+    cmd = build_command("certinspect", target)
+    assert "--require-sct" in cmd
+    assert "--require-must-staple" in cmd
+    assert "--min-tls-version" in cmd and "TLSv1.2" in cmd
+
+
+def test_build_command_omits_new_policy_flags_by_default():
+    cmd = build_command("certinspect", Target(host="example.com"))
+    assert "--require-sct" not in cmd
+    assert "--require-must-staple" not in cmd
+    assert "--min-tls-version" not in cmd
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(
@@ -71,6 +91,14 @@ def test_check_expired(monkeypatch):
     monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 4))
     result = check_target(Target(host="example.com"))
     assert result.status == "EXPIRED"
+
+
+def test_check_not_yet_valid(monkeypatch):
+    info = [{"days_to_expire": 200, "status": "NOT YET VALID"}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 4))
+    result = check_target(Target(host="example.com"))
+    assert result.status == "NOT_YET_VALID"
+    assert result.reachable is True
 
 
 def test_check_revoked(monkeypatch):

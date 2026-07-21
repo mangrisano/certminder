@@ -29,6 +29,7 @@ class EventKind(str, Enum):
     EXPIRING = "expiring"
     CRITICAL = "critical"
     EXPIRED = "expired"
+    NOT_YET_VALID = "not_yet_valid"
     REVOKED = "revoked"
     CHAIN_UNTRUSTED = "chain_untrusted"
     HOSTNAME_MISMATCH = "hostname_mismatch"
@@ -53,6 +54,9 @@ class Target:
     capath: str | None = None
     not_after_max: int | None = None
     cab_forum: bool = False
+    require_sct: bool = False
+    require_must_staple: bool = False
+    min_tls_version: str | None = None
     label: str | None = None
 
     @property

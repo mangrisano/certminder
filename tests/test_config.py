@@ -100,6 +100,24 @@ def test_cab_forum_target_key(tmp_path):
     assert config.targets[1].not_after_max == 47
 
 
+def test_new_policy_target_keys(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            require_sct: true
+            require_must_staple: true
+            min_tls_version: TLSv1.2
+        """,
+    )
+    config = load_config(path)
+    target = config.targets[0]
+    assert target.require_sct is True
+    assert target.require_must_staple is True
+    assert target.min_tls_version == "TLSv1.2"
+
+
 def test_cab_forum_and_not_after_max_conflict(tmp_path):
     path = _write(
         tmp_path,

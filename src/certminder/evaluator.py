@@ -17,6 +17,7 @@ _STATUS_EVENTS: dict[str, tuple[EventKind, Severity]] = {
     "EXPIRING": (EventKind.EXPIRING, Severity.WARNING),
     "CRITICAL": (EventKind.CRITICAL, Severity.CRITICAL),
     "EXPIRED": (EventKind.EXPIRED, Severity.CRITICAL),
+    "NOT_YET_VALID": (EventKind.NOT_YET_VALID, Severity.CRITICAL),
     "REVOKED": (EventKind.REVOKED, Severity.CRITICAL),
     "CHAIN_UNTRUSTED": (EventKind.CHAIN_UNTRUSTED, Severity.CRITICAL),
     "HOSTNAME_MISMATCH": (EventKind.HOSTNAME_MISMATCH, Severity.CRITICAL),
@@ -33,6 +34,8 @@ def _message(result: CheckResult) -> str:
         return f"{name}: certificate expires in {days} day(s)"
     if result.status == "EXPIRED":
         return f"{name}: certificate expired {abs(days) if days is not None else '?'} day(s) ago"
+    if result.status == "NOT_YET_VALID":
+        return f"{name}: certificate is not valid yet"
     if result.status == "REVOKED":
         return f"{name}: certificate is REVOKED"
     if result.status == "CHAIN_UNTRUSTED":

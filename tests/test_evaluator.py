@@ -35,6 +35,15 @@ def test_critical_severity(target):
     assert events[0].severity is Severity.CRITICAL
 
 
+def test_not_yet_valid_emits_critical(target):
+    result = make_result(target, "NOT_YET_VALID", exit_code=4, days_to_expire=200)
+    events, _ = evaluate(result, TargetState(fingerprint="AA:BB"))
+    assert len(events) == 1
+    assert events[0].kind is EventKind.NOT_YET_VALID
+    assert events[0].severity is Severity.CRITICAL
+    assert "not valid yet" in events[0].message
+
+
 def test_policy_violation_emits_critical(target):
     result = make_result(
         target,

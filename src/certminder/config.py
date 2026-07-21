@@ -69,6 +69,9 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
         "capath",
         "not_after_max",
         "cab_forum",
+        "require_sct",
+        "require_must_staple",
+        "min_tls_version",
         "label",
     }
     unknown = set(merged) - allowed

@@ -4,9 +4,9 @@ certminder never re-implements TLS or X.509 logic: it shells out to certinspect
 (one target per invocation, ``--json``) and trusts its exit code as the
 authoritative status. The exit-code contract is:
 
-    0 VALID            3 EXPIRING          4 CRITICAL / EXPIRED / INVALID DATES
+    0 VALID            3 EXPIRING          4 CRITICAL / EXPIRED / NOT YET VALID
     5 HOSTNAME mismatch  6 chain untrusted or REVOKED   7 pin mismatch
-    9 policy violation (max validity / CA-Browser-Forum cap)
+    9 policy violation (validity cap, key size, SCT, Must-Staple, TLS version)
     1 runtime error (e.g. unreachable)   2 usage error
 """
 
@@ -52,6 +52,13 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd.append("--cab-forum")
     elif target.not_after_max is not None:
         cmd += ["--not-after-max", str(target.not_after_max)]
+    # Additional opt-in policy checks (all surface as exit code 9).
+    if target.require_sct:
+        cmd.append("--require-sct")
+    if target.require_must_staple:
+        cmd.append("--require-must-staple")
+    if target.min_tls_version:
+        cmd += ["--min-tls-version", target.min_tls_version]
     return cmd
 
 
@@ -62,6 +69,8 @@ def _status_from(exit_code: int, info: dict[str, Any]) -> str:
     if exit_code == 3:
         return "EXPIRING"
     if exit_code == 4:
+        if info.get("status") == "NOT YET VALID":
+            return "NOT_YET_VALID"
         days = info.get("days_to_expire")
         if isinstance(days, int) and days < 0:
             return "EXPIRED"
