@@ -83,21 +83,32 @@ targets:
     starttls: smtp
   - host: short-lived.example.com
     cab_forum: true # fail if validity exceeds today's CA/Browser Forum cap
+  - host: hardened.example.com
+    require_sct: true # require Certificate Transparency SCTs
+    require_must_staple: true # require the OCSP Must-Staple extension
+    min_tls_version: TLSv1.2 # require at least TLS 1.2
 ```
+
+The opt-in **policy checks** (all raise `POLICY_VIOLATION`) are: `cab_forum` or
+`not_after_max` (maximum validity), `require_sct` (Certificate Transparency),
+`require_must_staple` (OCSP Must-Staple), and `min_tls_version` (minimum
+negotiated TLS version). `cab_forum` and `not_after_max` are mutually
+exclusive.
 
 ## What it alerts on
 
-| Event                  | Severity | Trigger                                      |
-| ---------------------- | -------- | -------------------------------------------- |
-| `EXPIRING`             | warning  | within `--days` of expiry                    |
-| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired   |
-| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)       |
-| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                      |
-| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname             |
-| `POLICY_VIOLATION`     | critical | validity exceeds `cab_forum`/`not_after_max` |
-| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle          |
-| `UNREACHABLE`          | critical | host/handshake failed                        |
-| `RECOVERED`            | info     | a prior problem cleared                      |
+| Event                  | Severity | Trigger                                    |
+| ---------------------- | -------- | ------------------------------------------ |
+| `EXPIRING`             | warning  | within `--days` of expiry                  |
+| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired |
+| `NOT_YET_VALID`        | critical | validity period starts in the future       |
+| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)     |
+| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                    |
+| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname           |
+| `POLICY_VIOLATION`     | critical | fails an opt-in policy check (see below)   |
+| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle        |
+| `UNREACHABLE`          | critical | host/handshake failed                      |
+| `RECOVERED`            | info     | a prior problem cleared                    |
 
 Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.

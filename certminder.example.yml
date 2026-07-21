@@ -31,6 +31,10 @@ defaults:
   # POLICY_VIOLATION). Use ONE of the two:
   #   cab_forum: true      # date-aware CA/Browser Forum cap (398->200->100->47)
   #   not_after_max: 47    # or pin an explicit limit in days
+  # Other opt-in policy checks (also exit code 9 -> POLICY_VIOLATION):
+  #   require_sct: true            # require embedded Certificate Transparency SCTs
+  #   require_must_staple: true    # require the OCSP Must-Staple extension
+  #   min_tls_version: TLSv1.2     # fail below this negotiated TLS version
 
 # Alert sinks. Every notifier receives every event in a cycle.
 notifiers:
@@ -72,3 +76,8 @@ targets:
     verify: true
     # certinspect supports --cafile/--capath for private PKIs; pass them here
     cafile: /etc/ssl/internal-ca.pem
+
+  - host: hardened.example.com
+    require_sct: true           # must carry Certificate Transparency SCTs
+    require_must_staple: true   # must carry the OCSP Must-Staple extension
+    min_tls_version: TLSv1.2    # must negotiate at least TLS 1.2
