@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-21
+
+### Added
+
+- Three more opt-in per-target policy checks, forwarded to certinspect and
+  surfaced as `POLICY_VIOLATION` (exit code 9): `require_sct: true`
+  (Certificate Transparency SCTs), `require_must_staple: true` (OCSP
+  Must-Staple), and `min_tls_version: TLSv1.2` (minimum negotiated TLS
+  version).
+- New `NOT_YET_VALID` status/event (critical) for certificates whose validity
+  period starts in the future, distinguished from `CRITICAL` via certinspect's
+  `status` field.
+
 ## [0.4.0] - 2026-07-16
 
 ### Added
@@ -57,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/mangrisano/certminder/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mangrisano/certminder/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/mangrisano/certminder/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mangrisano/certminder/compare/v0.1.0...v0.2.0

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "certminder"
-version = "0.4.0"
+version = "0.5.0"
 description = "Continuous TLS certificate monitoring and alerting, powered by certinspect."
 readme = "README.md"
 requires-python = ">=3.10"
