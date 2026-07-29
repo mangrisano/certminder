@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-29
+
+### Added
+
+- Per-target `expect`: a list of problem kinds that are known and accepted for
+  that target (e.g. `[chain_untrusted, hostname_mismatch]` for a service on a
+  private CA serving a shared certificate). Expected problems raise no alert and
+  are not tracked, while any *other* problem on the same target still alerts
+  normally, so a new fault is never buried under the ones you already know
+  about. Only the alerts are silenced — the Prometheus per-problem metric still
+  reflects the real state.
+
 ## [0.10.0] - 2026-07-29
 
 ### Added
@@ -156,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/mangrisano/certminder/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/mangrisano/certminder/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/mangrisano/certminder/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/mangrisano/certminder/compare/v0.7.0...v0.8.0
