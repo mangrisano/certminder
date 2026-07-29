@@ -60,6 +60,7 @@ notifiers:
     # timestamp: true   # prefix each line with the local date and time
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    # min_severity: critical   # this sink only gets events at/above this level
   - type: webhook
     url: "https://example.com/certminder-hook"
     # optional extra headers, e.g. an auth token

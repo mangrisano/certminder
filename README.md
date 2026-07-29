@@ -48,8 +48,9 @@ pip install -e '.[dev]'
 certminder check example.com
 
 # copy and edit the sample config, then:
-certminder once -c certminder.yml     # one cycle — ideal for cron
-certminder run  -c certminder.yml     # run continuously as a daemon
+certminder once   -c certminder.yml   # one cycle — ideal for cron
+certminder run    -c certminder.yml   # run continuously as a daemon
+certminder report -c certminder.yml   # print the current problems (from state)
 ```
 
 ## Configure
@@ -68,6 +69,7 @@ notifiers:
   - type: console
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    min_severity: critical # only critical events reach Slack
   - type: email
     host: smtp.example.com
     port: 587
@@ -81,6 +83,8 @@ targets:
     port: 8443
   - host: mail.example.com
     starttls: smtp
+  - host: internal.example.lan
+    cafile: /etc/ssl/internal-ca.pem # verify against a private CA, not the public store
   - host: short-lived.example.com
     cab_forum: true # fail if validity exceeds today's CA/Browser Forum cap
   - host: hardened.example.com
@@ -97,6 +101,12 @@ The opt-in **policy checks** (all raise `POLICY_VIOLATION`) are: `cab_forum` or
 negotiated TLS version). `cab_forum` and `not_after_max` are mutually
 exclusive. A `profile` (`lenient`, `standard` or `strict`) applies a named
 bundle of these checks in one line; any explicit check above overrides it.
+
+Any notifier also accepts `min_severity` (`info`/`warning`/`critical`) to
+receive only events at or above that level — e.g. keep everything on the console
+but send only `critical` to Slack. Targets on an internal/private CA take
+`cafile:`/`capath:` so the chain is verified against that bundle instead of the
+public trust store, which avoids false `CHAIN_UNTRUSTED` alerts.
 
 ## What it alerts on
 
@@ -142,7 +152,7 @@ targets:
   - host: trustapp-cit.azero.veneto.it
     expect: [chain_untrusted, hostname_mismatch] # known: private CA + shared cert
   - host: internal.lab.example
-    expect: [chain_untrusted]                    # internal CA, expected
+    expect: [chain_untrusted] # internal CA, expected
 ```
 
 Accepted kinds are the alertable ones: `expiring`, `critical`, `expired`,
@@ -196,6 +206,24 @@ certminder_last_run_timestamp_seconds 1700000000
 certificate with several faults is fully visible to Grafana/Alertmanager
 instead of collapsing to the single `status` label — mirroring the per-problem
 alerts. A healthy certificate emits no such series.
+
+Example Alertmanager rules (per-problem, expiry, and a stalled-daemon guard):
+
+```yaml
+groups:
+  - name: certminder
+    rules:
+      - alert: CertificateProblem
+        expr: certminder_certificate_problem > 0
+        for: 15m
+        annotations:
+          summary: "{{ $labels.problem }} on {{ $labels.target }}"
+      - alert: CertificateExpiringSoon
+        expr: certminder_certificate_expiry_days < 14
+        for: 1h
+      - alert: CertminderStalled
+        expr: time() - certminder_last_run_timestamp_seconds > 86400
+```
 
 ## Deployment
 
