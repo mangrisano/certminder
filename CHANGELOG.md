@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-29
+
+### Added
+
+- New per-target `profile` option (`lenient`, `standard` or `strict`) that
+  forwards certinspect's `--profile`, applying a named bundle of the opt-in
+  policy checks in one line; a breach still surfaces as `POLICY_VIOLATION`
+  (exit code 9). Any explicit policy key on the same target overrides the
+  profile, and an invalid profile name is rejected at config-load time.
+
+### Changed
+
+- Require `certinspect>=1.9.1` (was `>=1.0.0`): the `profile` option needs it,
+  and it also brings certinspect's revocation-lookup hardening (SSRF guard,
+  response-size cap, OCSP-freshness check).
+
 ## [0.5.0] - 2026-07-21
 
 ### Added
@@ -70,7 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/mangrisano/certminder/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mangrisano/certminder/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mangrisano/certminder/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/mangrisano/certminder/compare/v0.2.0...v0.3.0
