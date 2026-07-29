@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Security",
 ]
 dependencies = [
-    "certinspect>=1.0.0",
+    "certinspect>=1.9.1",
     "PyYAML>=6.0",
 ]
 

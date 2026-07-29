@@ -14,6 +14,10 @@ from certminder.models import Target
 _DURATION_RE = re.compile(r"^\s*(\d+)\s*([smhd])\s*$", re.IGNORECASE)
 _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
+# Mirrors certinspect's --profile choices: a named bundle of the opt-in policy
+# checks (a plain intensity ladder, not a compliance standard).
+_VALID_PROFILES = {"lenient", "standard", "strict"}
+
 
 class ConfigError(ValueError):
     """Raised when the configuration file is missing or malformed."""
@@ -72,6 +76,7 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
         "require_sct",
         "require_must_staple",
         "min_tls_version",
+        "profile",
         "label",
     }
     unknown = set(merged) - allowed
@@ -80,6 +85,12 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
     if merged.get("cab_forum") and merged.get("not_after_max") is not None:
         raise ConfigError(
             f"'cab_forum' and 'not_after_max' are mutually exclusive in {raw!r}"
+        )
+    profile = merged.get("profile")
+    if profile is not None and profile not in _VALID_PROFILES:
+        raise ConfigError(
+            f"invalid profile {profile!r} in {raw!r}; "
+            f"use one of {sorted(_VALID_PROFILES)}"
         )
     return Target(**merged)
 

@@ -57,6 +57,7 @@ class Target:
     require_sct: bool = False
     require_must_staple: bool = False
     min_tls_version: str | None = None
+    profile: str | None = None
     label: str | None = None
 
     @property

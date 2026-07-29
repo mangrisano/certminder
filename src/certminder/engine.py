@@ -59,6 +59,10 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd.append("--require-must-staple")
     if target.min_tls_version:
         cmd += ["--min-tls-version", target.min_tls_version]
+    # A named policy profile bundles several of the checks above; certinspect
+    # lets any explicit flag override it, so passing both is safe.
+    if target.profile:
+        cmd += ["--profile", target.profile]
     return cmd
 
 

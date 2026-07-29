@@ -60,6 +60,16 @@ def test_build_command_omits_new_policy_flags_by_default():
     assert "--min-tls-version" not in cmd
 
 
+def test_build_command_includes_profile():
+    cmd = build_command("certinspect", Target(host="example.com", profile="standard"))
+    assert "--profile" in cmd and "standard" in cmd
+
+
+def test_build_command_omits_profile_by_default():
+    cmd = build_command("certinspect", Target(host="example.com"))
+    assert "--profile" not in cmd
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(

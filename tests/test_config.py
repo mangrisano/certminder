@@ -132,6 +132,32 @@ def test_cab_forum_and_not_after_max_conflict(tmp_path):
         load_config(path)
 
 
+def test_profile_target_key(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            profile: standard
+        """,
+    )
+    config = load_config(path)
+    assert config.targets[0].profile == "standard"
+
+
+def test_invalid_profile_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            profile: paranoid
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
 def test_missing_file_is_error(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yml")
