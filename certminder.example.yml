@@ -20,6 +20,12 @@ concurrency: 8
 # atomically at the end of every cycle. Omit to disable.
 prometheus_file: /var/lib/node_exporter/textfile/certminder.prom
 
+# On (re)start, report every currently-active problem once before switching to
+# change-only alerts, so a restart surfaces the current picture instead of
+# staying silent until the next change. Set to false to keep quiet until
+# something changes.
+startup_report: true
+
 # Applied to every target unless the target overrides them.
 defaults:
   port: 443

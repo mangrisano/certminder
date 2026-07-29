@@ -106,7 +106,9 @@ give two separate events) — nothing is hidden behind a single headline status.
 Every problem is deduplicated independently: it is notified once and clears with
 its own `RECOVERED` event. When a **new** problem appears on a certificate its
 full current set is re-shown together, so a fresh fault never hides the ones
-already active.
+already active. On (re)start the daemon reports every currently-active problem
+once (`startup_report`, on by default), so a restart surfaces the current
+picture instead of staying silent until the next change.
 
 | Event                  | Severity | Trigger                                           |
 | ---------------------- | -------- | ------------------------------------------------- |
