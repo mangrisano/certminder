@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-29
+
+### Added
+
+- Each certificate is now evaluated on every axis independently, so one with
+  several faults raises **one alert per problem** instead of a single headline
+  status that hides the rest — e.g. an expired certificate served on an
+  untrusted chain now emits both `EXPIRED` and `CHAIN_UNTRUSTED`. Every problem
+  is deduplicated on its own and clears with its own `RECOVERED` event, so
+  fixing one issue is reported even while others remain.
+- Two new alert kinds, surfaced from data certinspect already reports:
+  `WEAK_CRYPTO` (small key or SHA-1/MD5 signature) and `CHAIN_EXPIRING` (an
+  intermediate or root CA in the chain is expired or near expiry) — both
+  warnings.
+
 ## [0.6.1] - 2026-07-29
 
 ### Fixed
@@ -97,7 +112,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/mangrisano/certminder/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/mangrisano/certminder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/mangrisano/certminder/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mangrisano/certminder/compare/v0.4.0...v0.5.0
