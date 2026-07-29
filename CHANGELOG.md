@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-29
+
+### Changed
+
+- `report --json` now uses unambiguous keys: `total_targets` (all monitored
+  targets) and `with_problems` (how many have an active problem), replacing the
+  ambiguous `total`.
+
 ## [1.1.0] - 2026-07-29
 
 ### Added
@@ -189,7 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/mangrisano/certminder/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mangrisano/certminder/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mangrisano/certminder/compare/v0.11.0...v1.0.0
 [0.11.0]: https://github.com/mangrisano/certminder/compare/v0.10.0...v0.11.0
