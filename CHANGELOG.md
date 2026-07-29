@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-29
+
+### Fixed
+
+- An expired (or not-yet-valid) certificate checked with `verify: true` is now
+  reported as `EXPIRED` / `NOT_YET_VALID` instead of the generic
+  `CHAIN_UNTRUSTED`. An out-of-validity leaf also fails chain verification, so
+  certinspect returns the higher-precedence exit code 6, which previously
+  masked the real root cause; certminder now recovers it from the certificate's
+  dates. `REVOKED` still takes precedence.
+
 ## [0.6.0] - 2026-07-29
 
 ### Added
@@ -86,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/mangrisano/certminder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/mangrisano/certminder/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mangrisano/certminder/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mangrisano/certminder/compare/v0.3.0...v0.4.0
