@@ -128,6 +128,39 @@ one-line summary after each cycle so a quiet daemon is visibly alive.
 | `UNREACHABLE`          | critical | host/handshake failed                             |
 | `RECOVERED`            | info     | a specific problem cleared                        |
 
+### Acknowledging known problems (`expect`)
+
+Some problems are known and accepted: a test endpoint on a private CA that will
+never be publicly trusted, a service that deliberately serves a shared
+certificate, and so on. List those problem kinds per target in `expect` and
+certminder stops alerting on them — while still alerting on **anything else**,
+so a _new_, unexpected fault on the same host is never buried under the ones you
+already know about.
+
+```yaml
+targets:
+  - host: trustapp-cit.azero.veneto.it
+    expect: [chain_untrusted, hostname_mismatch] # known: private CA + shared cert
+  - host: internal.lab.example
+    expect: [chain_untrusted]                    # internal CA, expected
+```
+
+Accepted kinds are the alertable ones: `expiring`, `critical`, `expired`,
+`not_yet_valid`, `revoked`, `chain_untrusted`, `hostname_mismatch`,
+`policy_violation`, `weak_crypto`, `chain_expiring`, `unreachable` (an unknown
+kind is a config error).
+
+How it behaves:
+
+- An **expected** problem raises no alert and is not tracked as an active alert
+  — it is silently accepted.
+- Any **other** problem on the same target still alerts normally (with
+  `expect: [chain_untrusted]`, an `EXPIRED` on that host is still reported).
+- Remove a kind from `expect` and it starts alerting again on the next cycle.
+- `expect` silences only the **alerts** (console/Slack/webhook/email and the
+  startup digest). The Prometheus `certminder_certificate_problem` metric still
+  reflects the real state, so Grafana keeps full visibility.
+
 Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.
 

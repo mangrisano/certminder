@@ -102,3 +102,11 @@ targets:
 
   - host: strict.example.com
     profile: strict             # one-flag hardening bundle (lenient/standard/strict)
+
+  - host: internal-lab.example.com
+    verify: true
+    # Known/accepted problems for this target: don't alert on them, but still
+    # alert on anything else. Kinds: expiring, critical, expired, not_yet_valid,
+    # revoked, chain_untrusted, hostname_mismatch, policy_violation, weak_crypto,
+    # chain_expiring, unreachable.
+    expect: [chain_untrusted]   # internal/private CA, expected
