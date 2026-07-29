@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-29
+
+### Added
+
+- `startup_report` (config, on by default): on daemon (re)start the first cycle
+  reports every currently-active problem once before reverting to change-only
+  alerts, so a restart surfaces the current picture instead of staying silent
+  until the next change. Set `startup_report: false` to keep the previous
+  behaviour.
+
 ## [0.8.0] - 2026-07-29
 
 ### Added
@@ -128,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/mangrisano/certminder/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/mangrisano/certminder/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/mangrisano/certminder/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/mangrisano/certminder/compare/v0.6.0...v0.6.1
