@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-29
+
+### Added
+
+- `certminder report -c <config>`: print the currently-active problems from the
+  last cycle's saved state (instant, no network; `--json` for machine output),
+  so you can see what is wrong on demand without waiting for a cycle or reading
+  the logs. Exits 1 when any target has a problem.
+- `min_severity` per notifier (`info`/`warning`/`critical`): a sink receives
+  only events at or above that level — e.g. keep everything on the console but
+  send only `critical` to Slack.
+
 ## [1.0.0] - 2026-07-29
 
 ### Changed
@@ -23,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-target `expect`: a list of problem kinds that are known and accepted for
   that target (e.g. `[chain_untrusted, hostname_mismatch]` for a service on a
   private CA serving a shared certificate). Expected problems raise no alert and
-  are not tracked, while any *other* problem on the same target still alerts
+  are not tracked, while any _other_ problem on the same target still alerts
   normally, so a new fault is never buried under the ones you already know
   about. Only the alerts are silenced — the Prometheus per-problem metric still
   reflects the real state.
@@ -177,7 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/mangrisano/certminder/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mangrisano/certminder/compare/v0.11.0...v1.0.0
 [0.11.0]: https://github.com/mangrisano/certminder/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/mangrisano/certminder/compare/v0.9.0...v0.10.0
