@@ -35,6 +35,9 @@ defaults:
   #   require_sct: true            # require embedded Certificate Transparency SCTs
   #   require_must_staple: true    # require the OCSP Must-Staple extension
   #   min_tls_version: TLSv1.2     # fail below this negotiated TLS version
+  # Or apply a whole bundle at once with a named profile (an intensity ladder,
+  # not a compliance standard); explicit checks above still override it:
+  #   profile: standard            # one of: lenient, standard, strict
 
 # Alert sinks. Every notifier receives every event in a cycle.
 notifiers:
@@ -81,3 +84,6 @@ targets:
     require_sct: true           # must carry Certificate Transparency SCTs
     require_must_staple: true   # must carry the OCSP Must-Staple extension
     min_tls_version: TLSv1.2    # must negotiate at least TLS 1.2
+
+  - host: strict.example.com
+    profile: strict             # one-flag hardening bundle (lenient/standard/strict)
