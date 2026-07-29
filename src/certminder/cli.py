@@ -3,6 +3,7 @@
 Subcommands:
     once    run a single inspection cycle and exit (ideal for cron)
     run     run continuously, sleeping ``interval`` between cycles (daemon)
+    report  print the current problems from the last cycle's saved state
     check   inspect a single host ad hoc, ignoring the config's targets
 """
 
@@ -17,6 +18,7 @@ from certminder.config import Config, ConfigError, load_config
 from certminder.engine import check_target
 from certminder.models import Target
 from certminder.scheduler import run_loop, run_once
+from certminder.state import StateStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +41,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_run = sub.add_parser("run", help="run continuously as a daemon")
     p_run.add_argument("-c", "--config", required=True, help="path to certminder.yml")
+
+    p_report = sub.add_parser(
+        "report", help="print the current problems from the last cycle's state"
+    )
+    p_report.add_argument(
+        "-c", "--config", required=True, help="path to certminder.yml"
+    )
+    p_report.add_argument(
+        "--json", action="store_true", help="print a JSON report instead of text"
+    )
 
     p_check = sub.add_parser("check", help="inspect one host ad hoc")
     p_check.add_argument("host")
@@ -68,6 +80,46 @@ def _cmd_check(args: argparse.Namespace) -> int:
     return 0 if result.status == "VALID" else 1
 
 
+def _cmd_report(config: Config, as_json: bool) -> int:
+    """Print the currently-active problems from the persisted state.
+
+    Reads the last cycle's saved state (instant, no network), so it reflects
+    what the daemon last saw. Exit code 1 when any target has a problem, else 0.
+    """
+    store = StateStore(config.state_file)
+    rows = []
+    for target in config.targets:
+        state = store.get(target.name)
+        if state.active_alerts:
+            rows.append(
+                {
+                    "target": target.name,
+                    "status": state.status,
+                    "problems": sorted(
+                        key.rsplit("|", 1)[-1] for key in state.active_alerts
+                    ),
+                }
+            )
+
+    if as_json:
+        print(json.dumps({"total": len(config.targets), "problems": rows}, indent=2))
+        return 1 if rows else 0
+
+    if not config.state_file.is_file():
+        print(
+            "certminder: no saved state yet — run a cycle first (`certminder once`).",
+            file=sys.stderr,
+        )
+        return 0
+    if not rows:
+        print(f"All {len(config.targets)} target(s) OK.")
+        return 0
+    print(f"{len(rows)} of {len(config.targets)} target(s) with active problems:")
+    for row in rows:
+        print(f"  - {row['target']}: {', '.join(row['problems'])}")
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -85,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(json.dumps(report.to_dict(), indent=2))
         return 1 if report.events else 0
+
+    if args.command == "report":
+        return _cmd_report(config, args.json)
 
     if args.command == "run":
         try:
