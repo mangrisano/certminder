@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir build \
 FROM python:3.12-slim
 
 # certminder shells out to certinspect; both come from PyPI via the wheel's deps.
+# Unbuffered stdout/stderr so log lines (including INFO/RECOVERED and the
+# heartbeat) appear immediately in `docker logs`/journald, not block-buffered.
+ENV PYTHONUNBUFFERED=1
 COPY --from=build /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl certinspect \
     && rm -rf /tmp/*.whl \
