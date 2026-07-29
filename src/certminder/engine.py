@@ -66,6 +66,24 @@ def build_command(bin_path: str, target: Target) -> list[str]:
     return cmd
 
 
+def _validity_status(info: dict[str, Any], fallback: str) -> str:
+    """Return NOT_YET_VALID / EXPIRED from the certificate's own dates.
+
+    Both a not-yet-valid and an expired leaf also break chain verification, so
+    certinspect can report them under a higher-precedence exit code (e.g. 6,
+    untrusted chain) that masks the real cause. Recovering the date-based root
+    cause here keeps the alert pointed at the actual problem — renew or wait —
+    instead of a generic chain error. ``fallback`` is returned when the
+    certificate's own validity dates are fine.
+    """
+    if info.get("status") == "NOT YET VALID":
+        return "NOT_YET_VALID"
+    days = info.get("days_to_expire")
+    if isinstance(days, int) and days < 0:
+        return "EXPIRED"
+    return fallback
+
+
 def _status_from(exit_code: int, info: dict[str, Any]) -> str:
     """Refine certinspect's exit code into a certminder status string."""
     if exit_code == 0:
@@ -73,18 +91,13 @@ def _status_from(exit_code: int, info: dict[str, Any]) -> str:
     if exit_code == 3:
         return "EXPIRING"
     if exit_code == 4:
-        if info.get("status") == "NOT YET VALID":
-            return "NOT_YET_VALID"
-        days = info.get("days_to_expire")
-        if isinstance(days, int) and days < 0:
-            return "EXPIRED"
-        return "CRITICAL"
+        return _validity_status(info, "CRITICAL")
     if exit_code == 5:
         return "HOSTNAME_MISMATCH"
     if exit_code == 6:
         if info.get("revocation_status") == "REVOKED":
             return "REVOKED"
-        return "CHAIN_UNTRUSTED"
+        return _validity_status(info, "CHAIN_UNTRUSTED")
     if exit_code == 7:
         return "PIN_MISMATCH"
     if exit_code == 9:

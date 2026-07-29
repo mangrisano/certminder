@@ -125,6 +125,29 @@ def test_check_chain_untrusted(monkeypatch):
     assert result.status == "CHAIN_UNTRUSTED"
 
 
+def test_check_expired_under_untrusted_chain(monkeypatch):
+    # An expired leaf also fails chain verification (exit 6); the expiry is the
+    # real root cause and must not be masked as CHAIN_UNTRUSTED.
+    info = [{"days_to_expire": -236, "status": "EXPIRED", "chain_trusted": False}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 6))
+    result = check_target(Target(host="example.com"))
+    assert result.status == "EXPIRED"
+
+
+def test_check_not_yet_valid_under_untrusted_chain(monkeypatch):
+    info = [{"days_to_expire": 200, "status": "NOT YET VALID", "chain_trusted": False}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 6))
+    result = check_target(Target(host="example.com"))
+    assert result.status == "NOT_YET_VALID"
+
+
+def test_check_revoked_takes_precedence_over_expiry(monkeypatch):
+    info = [{"days_to_expire": -10, "revocation_status": "REVOKED"}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 6))
+    result = check_target(Target(host="example.com"))
+    assert result.status == "REVOKED"
+
+
 def test_check_policy_violation(monkeypatch):
     info = [
         {
