@@ -34,6 +34,8 @@ class EventKind(str, Enum):
     CHAIN_UNTRUSTED = "chain_untrusted"
     HOSTNAME_MISMATCH = "hostname_mismatch"
     POLICY_VIOLATION = "policy_violation"
+    WEAK_CRYPTO = "weak_crypto"
+    CHAIN_EXPIRING = "chain_expiring"
     FINGERPRINT_CHANGED = "fingerprint_changed"
     UNREACHABLE = "unreachable"
     RECOVERED = "recovered"

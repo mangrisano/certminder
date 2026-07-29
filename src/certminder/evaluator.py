@@ -2,9 +2,10 @@
 
 The evaluator is pure: given the current :class:`CheckResult` and the previous
 :class:`TargetState`, it returns the events to emit *this cycle* and the new
-state to persist. Deduplication lives here: a problem already present in
-``active_alerts`` is not re-notified until it clears, at which point a single
-``RECOVERED`` event is emitted.
+state to persist. Every problem certinspect reports is surfaced as its own
+event, so a certificate with several faults raises one alert each. Problems are
+deduplicated via ``active_alerts`` (a persistent fault is notified once), and a
+single ``RECOVERED`` event is emitted per problem that clears.
 """
 
 from __future__ import annotations
@@ -12,76 +13,182 @@ from __future__ import annotations
 from certminder.models import CheckResult, Event, EventKind, Severity
 from certminder.state import TargetState
 
-# Map a status string to the event it raises and its severity.
-_STATUS_EVENTS: dict[str, tuple[EventKind, Severity]] = {
-    "EXPIRING": (EventKind.EXPIRING, Severity.WARNING),
-    "CRITICAL": (EventKind.CRITICAL, Severity.CRITICAL),
-    "EXPIRED": (EventKind.EXPIRED, Severity.CRITICAL),
-    "NOT_YET_VALID": (EventKind.NOT_YET_VALID, Severity.CRITICAL),
-    "REVOKED": (EventKind.REVOKED, Severity.CRITICAL),
-    "CHAIN_UNTRUSTED": (EventKind.CHAIN_UNTRUSTED, Severity.CRITICAL),
-    "HOSTNAME_MISMATCH": (EventKind.HOSTNAME_MISMATCH, Severity.CRITICAL),
-    "POLICY_VIOLATION": (EventKind.POLICY_VIOLATION, Severity.CRITICAL),
-}
 
-_PROBLEM_STATUSES = set(_STATUS_EVENTS) | {"UNREACHABLE", "ERROR"}
+def _detect_problems(result: CheckResult) -> list[Event]:
+    """Return one event per distinct problem found on the certificate.
 
-
-def _message(result: CheckResult) -> str:
+    Every dimension certinspect reports is inspected independently, so a
+    certificate with several faults (say, expired *and* an untrusted chain)
+    yields one event per fault instead of a single headline status that hides
+    the rest. Each event carries its own severity; the caller deduplicates.
+    """
+    info = result.raw
     name = result.target.name
     days = result.days_to_expire
-    if result.status in {"EXPIRING", "CRITICAL"}:
-        return f"{name}: certificate expires in {days} day(s)"
-    if result.status == "EXPIRED":
-        return f"{name}: certificate expired {abs(days) if days is not None else '?'} day(s) ago"
-    if result.status == "NOT_YET_VALID":
-        return f"{name}: certificate is not valid yet"
-    if result.status == "REVOKED":
-        return f"{name}: certificate is REVOKED"
-    if result.status == "CHAIN_UNTRUSTED":
-        return f"{name}: certificate chain is not trusted"
-    if result.status == "HOSTNAME_MISMATCH":
-        return f"{name}: certificate does not match the hostname"
-    if result.status == "POLICY_VIOLATION":
-        violations = result.raw.get("policy_violations") or []
-        detail = "; ".join(violations) if violations else "policy constraints not met"
-        return f"{name}: certificate violates policy ({detail})"
-    return f"{name}: {result.status.lower()}"
+    problems: list[Event] = []
+
+    def add(
+        kind: EventKind, severity: Severity, message: str, **details: object
+    ) -> None:
+        problems.append(
+            Event(
+                target_name=name,
+                kind=kind,
+                severity=severity,
+                message=f"{name}: {message}",
+                details=details,
+            )
+        )
+
+    # Validity, from certinspect's own (chain-independent) status field.
+    validity = info.get("status")
+    if validity in {"EXPIRED", "INVALID DATES"}:
+        ago = abs(days) if isinstance(days, int) else "?"
+        add(
+            EventKind.EXPIRED,
+            Severity.CRITICAL,
+            f"certificate expired {ago} day(s) ago",
+            days_to_expire=days,
+        )
+    elif validity == "NOT YET VALID":
+        add(EventKind.NOT_YET_VALID, Severity.CRITICAL, "certificate is not valid yet")
+    elif validity == "CRITICAL":
+        add(
+            EventKind.CRITICAL,
+            Severity.CRITICAL,
+            f"certificate expires in {days} day(s)",
+            days_to_expire=days,
+        )
+    elif validity == "EXPIRING":
+        add(
+            EventKind.EXPIRING,
+            Severity.WARNING,
+            f"certificate expires in {days} day(s)",
+            days_to_expire=days,
+        )
+
+    # Chain of trust.
+    if result.chain_trusted is False:
+        reason = info.get("chain_error")
+        detail = f" ({reason})" if reason else ""
+        add(
+            EventKind.CHAIN_UNTRUSTED,
+            Severity.CRITICAL,
+            f"certificate chain is not trusted{detail}",
+        )
+
+    # Revocation.
+    if result.revocation == "REVOKED":
+        add(EventKind.REVOKED, Severity.CRITICAL, "certificate is REVOKED")
+
+    # Hostname coverage.
+    if result.hostname_match is False:
+        add(
+            EventKind.HOSTNAME_MISMATCH,
+            Severity.CRITICAL,
+            "certificate does not match the hostname",
+        )
+
+    # Opt-in policy checks.
+    violations = info.get("policy_violations") or []
+    if violations:
+        add(
+            EventKind.POLICY_VIOLATION,
+            Severity.CRITICAL,
+            f"certificate violates policy ({'; '.join(violations)})",
+            violations=list(violations),
+        )
+
+    # Weak cryptography (small key, SHA-1/MD5 signature).
+    weak = info.get("weak") or []
+    if weak:
+        add(
+            EventKind.WEAK_CRYPTO,
+            Severity.WARNING,
+            f"weak cryptography ({'; '.join(weak)})",
+            weak=list(weak),
+        )
+
+    # Intermediate/root chain certificates that are expired or near expiry.
+    chain_warnings = info.get("chain_warnings") or []
+    if chain_warnings:
+        add(
+            EventKind.CHAIN_EXPIRING,
+            Severity.WARNING,
+            "; ".join(chain_warnings),
+            warnings=list(chain_warnings),
+        )
+
+    return problems
+
+
+# Human-friendly resolution messages, keyed by the cleared problem's kind value.
+_RESOLVED_MESSAGE: dict[str, str] = {
+    EventKind.EXPIRED.value: "certificate is valid again",
+    EventKind.EXPIRING.value: "certificate is no longer within the expiry warning window",
+    EventKind.CRITICAL.value: "certificate expiry is no longer critical",
+    EventKind.NOT_YET_VALID.value: "certificate is now within its validity period",
+    EventKind.CHAIN_UNTRUSTED.value: "certificate chain is trusted again",
+    EventKind.REVOKED.value: "certificate is no longer reported as revoked",
+    EventKind.HOSTNAME_MISMATCH.value: "certificate matches the hostname again",
+    EventKind.POLICY_VIOLATION.value: "certificate now satisfies the policy",
+    EventKind.WEAK_CRYPTO.value: "weak-cryptography warning cleared",
+    EventKind.CHAIN_EXPIRING.value: "chain-expiry warning cleared",
+    EventKind.UNREACHABLE.value: "target is reachable again",
+}
+
+
+def _resolved_event(name: str, key: str) -> Event:
+    """Build the INFO event announcing that one specific problem has cleared."""
+    kind_value = key.rsplit("|", 1)[-1]
+    message = _RESOLVED_MESSAGE.get(
+        kind_value, f"{kind_value.replace('_', ' ')} cleared"
+    )
+    return Event(
+        target_name=name,
+        kind=EventKind.RECOVERED,
+        severity=Severity.INFO,
+        message=f"{name}: {message}",
+        details={"resolved": kind_value},
+    )
 
 
 def evaluate(
     result: CheckResult, previous: TargetState
 ) -> tuple[list[Event], TargetState]:
-    """Compare ``result`` against ``previous`` and return (events, new_state)."""
+    """Compare ``result`` against ``previous`` and return (events, new_state).
+
+    Emits one event per newly-appeared problem, one INFO event per problem that
+    has just cleared, and a fingerprint-change event on rotation. Every problem
+    is tracked in ``active_alerts`` so a persistent fault is notified once, not
+    every cycle.
+    """
     events: list[Event] = []
     name = result.target.name
     active = set(previous.active_alerts)
-    new_active: set[str] = set()
 
-    # Unreachable / executable errors.
+    # Unreachable: the certificate cannot be assessed, so surface only that,
+    # deduplicated. Any per-problem alerts are dropped (unknown now) and
+    # re-raised when the host returns.
     if not result.reachable:
-        kind = EventKind.UNREACHABLE
-        key = f"{name}|{kind.value}"
-        new_active.add(key)
+        key = f"{name}|{EventKind.UNREACHABLE.value}"
         if key not in active:
             events.append(
                 Event(
                     target_name=name,
-                    kind=kind,
+                    kind=EventKind.UNREACHABLE,
                     severity=Severity.CRITICAL,
                     message=f"{name}: unreachable ({result.error or 'no detail'})",
                     details={"error": result.error, "exit_code": result.exit_code},
                 )
             )
-        # Keep the last known fingerprint; nothing new to compare.
         return events, TargetState(
             fingerprint=previous.fingerprint,
             status=result.status,
-            active_alerts=sorted(new_active),
+            active_alerts=[key],
         )
 
-    # Fingerprint change: report on every change (after the first sighting),
-    # regardless of validity — an unexpected rotation is itself the signal.
+    # Fingerprint change: report every rotation (transient, not tracked).
     if (
         previous.fingerprint
         and result.fingerprint
@@ -93,43 +200,21 @@ def evaluate(
                 kind=EventKind.FINGERPRINT_CHANGED,
                 severity=Severity.WARNING,
                 message=f"{name}: certificate fingerprint changed",
-                details={
-                    "old": previous.fingerprint,
-                    "new": result.fingerprint,
-                },
+                details={"old": previous.fingerprint, "new": result.fingerprint},
             )
         )
 
-    # Validity-derived problems (deduplicated via active_alerts).
-    if result.status in _STATUS_EVENTS:
-        kind, severity = _STATUS_EVENTS[result.status]
-        key = f"{name}|{kind.value}"
-        new_active.add(key)
-        if key not in active:
-            events.append(
-                Event(
-                    target_name=name,
-                    kind=kind,
-                    severity=severity,
-                    message=_message(result),
-                    details={"days_to_expire": result.days_to_expire},
-                )
-            )
+    problems = _detect_problems(result)
+    by_key = {event.key(): event for event in problems}
+    new_active = set(by_key)
 
-    # Recovery: previously had an active problem, now VALID.
-    cleared = active - new_active
-    if result.status == "VALID" and any(
-        not k.endswith(f"|{EventKind.FINGERPRINT_CHANGED.value}") for k in cleared
-    ):
-        events.append(
-            Event(
-                target_name=name,
-                kind=EventKind.RECOVERED,
-                severity=Severity.INFO,
-                message=f"{name}: recovered, certificate is valid again",
-                details={"days_to_expire": result.days_to_expire},
-            )
-        )
+    # Newly-appeared problems.
+    for key in sorted(new_active - active):
+        events.append(by_key[key])
+
+    # Problems that were active last cycle and have now cleared.
+    for key in sorted(active - new_active):
+        events.append(_resolved_event(name, key))
 
     return events, TargetState(
         fingerprint=result.fingerprint or previous.fingerprint,
