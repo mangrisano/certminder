@@ -102,7 +102,12 @@ def _cmd_report(config: Config, as_json: bool) -> int:
             )
 
     if as_json:
-        print(json.dumps({"total": len(config.targets), "problems": rows}, indent=2))
+        report = {
+            "total_targets": len(config.targets),
+            "with_problems": len(rows),
+            "problems": rows,
+        }
+        print(json.dumps(report, indent=2))
         return 1 if rows else 0
 
     if not config.state_file.is_file():

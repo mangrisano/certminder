@@ -62,5 +62,6 @@ def test_report_json(tmp_path, capsys):
     code = _cmd_report(config, as_json=True)
     data = json.loads(capsys.readouterr().out)
     assert code == 1
-    assert data["total"] == 1
+    assert data["total_targets"] == 1
+    assert data["with_problems"] == 1
     assert data["problems"][0]["problems"] == ["expired"]
