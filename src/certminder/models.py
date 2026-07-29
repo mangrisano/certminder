@@ -60,6 +60,7 @@ class Target:
     require_must_staple: bool = False
     min_tls_version: str | None = None
     profile: str | None = None
+    expect: tuple[str, ...] = ()
     label: str | None = None
 
     @property

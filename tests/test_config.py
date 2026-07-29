@@ -193,6 +193,33 @@ def test_renotify_after_and_heartbeat_options(tmp_path):
     assert default.heartbeat is True
 
 
+def test_expect_target_key(tmp_path):
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            targets:
+              - host: example.com
+                expect: [chain_untrusted, hostname_mismatch]
+            """,
+        )
+    )
+    assert cfg.targets[0].expect == ("chain_untrusted", "hostname_mismatch")
+
+
+def test_invalid_expect_kind_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            expect: [bogus_problem]
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
 def test_missing_file_is_error(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yml")

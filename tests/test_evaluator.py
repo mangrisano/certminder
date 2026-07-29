@@ -266,3 +266,38 @@ def test_renotify_applies_to_unreachable(target):
     events, _ = evaluate(result, state, now=3600.0, renotify_after=3600)
     assert len(events) == 1
     assert events[0].kind is EventKind.UNREACHABLE
+
+
+def test_expect_suppresses_acknowledged_problem_only():
+    from certminder.models import Target
+
+    t = Target(host="example.com", port=443, expect=("chain_untrusted",))
+    # The chain problem is acknowledged; a hostname mismatch is not, so only the
+    # hostname mismatch is alerted.
+    result = make_result(
+        t,
+        "CHAIN_UNTRUSTED",
+        chain_trusted=False,
+        hostname_match=False,
+        raw={"status": "VALID"},
+    )
+    events, state = evaluate(result, TargetState(fingerprint="AA:BB"))
+    kinds = {e.kind for e in events}
+    assert EventKind.CHAIN_UNTRUSTED not in kinds
+    assert EventKind.HOSTNAME_MISMATCH in kinds
+    assert not any(k.endswith("|chain_untrusted") for k in state.active_alerts)
+
+
+def test_expect_all_present_problems_stays_silent():
+    from certminder.models import Target
+
+    t = Target(host="example.com", port=443, expect=("expired", "chain_untrusted"))
+    result = make_result(
+        t,
+        "EXPIRED",
+        days_to_expire=-5,
+        chain_trusted=False,
+        raw={"status": "EXPIRED"},
+    )
+    events, _ = evaluate(result, TargetState(fingerprint="AA:BB"))
+    assert events == []

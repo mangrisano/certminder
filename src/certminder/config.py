@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from certminder.models import Target
+from certminder.models import EventKind, Target
 
 _DURATION_RE = re.compile(r"^\s*(\d+)\s*([smhd])\s*$", re.IGNORECASE)
 _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
@@ -17,6 +17,13 @@ _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 # Mirrors certinspect's --profile choices: a named bundle of the opt-in policy
 # checks (a plain intensity ladder, not a compliance standard).
 _VALID_PROFILES = {"lenient", "standard", "strict"}
+
+# Problem kinds a target may acknowledge via ``expect`` (every alertable kind;
+# fingerprint changes and recoveries cannot be suppressed this way).
+_ACKNOWLEDGEABLE_PROBLEMS = {k.value for k in EventKind} - {
+    EventKind.FINGERPRINT_CHANGED.value,
+    EventKind.RECOVERED.value,
+}
 
 
 class ConfigError(ValueError):
@@ -80,6 +87,7 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
         "require_must_staple",
         "min_tls_version",
         "profile",
+        "expect",
         "label",
     }
     unknown = set(merged) - allowed
@@ -95,6 +103,17 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
             f"invalid profile {profile!r} in {raw!r}; "
             f"use one of {sorted(_VALID_PROFILES)}"
         )
+    raw_expect = merged.get("expect")
+    if raw_expect is not None:
+        if not isinstance(raw_expect, list):
+            raise ConfigError(f"'expect' must be a list of problem kinds in {raw!r}")
+        unknown_kinds = set(raw_expect) - _ACKNOWLEDGEABLE_PROBLEMS
+        if unknown_kinds:
+            raise ConfigError(
+                f"unknown 'expect' problem kind(s) {sorted(unknown_kinds)} in "
+                f"{raw!r}; use one of {sorted(_ACKNOWLEDGEABLE_PROBLEMS)}"
+            )
+        merged["expect"] = tuple(raw_expect)
     return Target(**merged)
 
 

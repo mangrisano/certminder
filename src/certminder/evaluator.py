@@ -174,6 +174,7 @@ def evaluate(
     now = time.time() if now is None else now
     events: list[Event] = []
     name = result.target.name
+    expected = set(result.target.expect or ())
     active = set(previous.active_alerts)
     prev_notified = previous.notified_at
 
@@ -193,7 +194,7 @@ def evaluate(
     # (unknown now) and re-raised when the host returns.
     if not result.reachable:
         key = f"{name}|{EventKind.UNREACHABLE.value}"
-        if _due(key):
+        if EventKind.UNREACHABLE.value not in expected and _due(key):
             events.append(
                 Event(
                     target_name=name,
@@ -229,7 +230,9 @@ def evaluate(
             )
         )
 
-    problems = detect_problems(result)
+    problems = [
+        event for event in detect_problems(result) if event.kind.value not in expected
+    ]
     by_key = {event.key(): event for event in problems}
     new_active = set(by_key)
 
