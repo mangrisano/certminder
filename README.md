@@ -101,25 +101,27 @@ bundle of these checks in one line; any explicit check above overrides it.
 ## What it alerts on
 
 Each certificate is inspected on every axis, so a certificate with several
-faults raises **one alert per problem** (e.g. expired *and* an untrusted chain
+faults raises **one alert per problem** (e.g. expired _and_ an untrusted chain
 give two separate events) — nothing is hidden behind a single headline status.
 Every problem is deduplicated independently: it is notified once and clears with
-its own `RECOVERED` event.
+its own `RECOVERED` event. When a **new** problem appears on a certificate its
+full current set is re-shown together, so a fresh fault never hides the ones
+already active.
 
-| Event                  | Severity | Trigger                                    |
-| ---------------------- | -------- | ------------------------------------------ |
-| `EXPIRING`             | warning  | within `--days` of expiry                  |
-| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired |
-| `NOT_YET_VALID`        | critical | validity period starts in the future       |
-| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)     |
-| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                    |
-| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname           |
-| `POLICY_VIOLATION`     | critical | fails an opt-in policy check (see below)   |
-| `WEAK_CRYPTO`          | warning  | small key or SHA-1/MD5 signature           |
+| Event                  | Severity | Trigger                                           |
+| ---------------------- | -------- | ------------------------------------------------- |
+| `EXPIRING`             | warning  | within `--days` of expiry                         |
+| `CRITICAL` / `EXPIRED` | critical | within `critical_days`, or already expired        |
+| `NOT_YET_VALID`        | critical | validity period starts in the future              |
+| `REVOKED`              | critical | OCSP/CRL says revoked (needs `verify`)            |
+| `CHAIN_UNTRUSTED`      | critical | chain fails to validate                           |
+| `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname                  |
+| `POLICY_VIOLATION`     | critical | fails an opt-in policy check (see below)          |
+| `WEAK_CRYPTO`          | warning  | small key or SHA-1/MD5 signature                  |
 | `CHAIN_EXPIRING`       | warning  | an intermediate/root CA is expired or near expiry |
-| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle        |
-| `UNREACHABLE`          | critical | host/handshake failed                      |
-| `RECOVERED`            | info     | a specific problem cleared                 |
+| `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle               |
+| `UNREACHABLE`          | critical | host/handshake failed                             |
+| `RECOVERED`            | info     | a specific problem cleared                        |
 
 Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.
@@ -147,8 +149,15 @@ directory. certminder rewrites it atomically at the end of every cycle:
 certminder_certificate_expiry_days{target="example.com:443",host="example.com",port="443",status="VALID"} 42
 certminder_certificate_valid{...} 1
 certminder_target_up{...} 1
+certminder_certificate_problem{target="example.com:443",host="example.com",port="443",problem="chain_untrusted"} 1
+certminder_certificate_problem{...,problem="expired"} 1
 certminder_last_run_timestamp_seconds 1700000000
 ```
+
+`certminder_certificate_problem` emits one series per active problem, so a
+certificate with several faults is fully visible to Grafana/Alertmanager
+instead of collapsing to the single `status` label — mirroring the per-problem
+alerts. A healthy certificate emits no such series.
 
 ## Deployment
 
