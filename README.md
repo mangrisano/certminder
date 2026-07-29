@@ -108,7 +108,10 @@ its own `RECOVERED` event. When a **new** problem appears on a certificate its
 full current set is re-shown together, so a fresh fault never hides the ones
 already active. On (re)start the daemon reports every currently-active problem
 once (`startup_report`, on by default), so a restart surfaces the current
-picture instead of staying silent until the next change.
+picture instead of staying silent until the next change. Set `renotify_after`
+(e.g. `24h`) to re-alert a still-active problem periodically so a persistent
+fault is never silent for long, and `heartbeat` (on by default) prints a
+one-line summary after each cycle so a quiet daemon is visibly alive.
 
 | Event                  | Severity | Trigger                                           |
 | ---------------------- | -------- | ------------------------------------------------- |

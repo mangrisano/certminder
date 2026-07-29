@@ -26,6 +26,15 @@ prometheus_file: /var/lib/node_exporter/textfile/certminder.prom
 # something changes.
 startup_report: true
 
+# Re-notify a still-active problem after this long since its last alert, so a
+# persistent fault (e.g. an expired cert nobody fixed) doesn't stay silent
+# forever. Omit to notify once per problem (default: off).
+# renotify_after: 24h
+
+# Print a one-line summary after each cycle (targets / ok / with problems) so a
+# quiet daemon is visibly alive. Default: true.
+heartbeat: true
+
 # Applied to every target unless the target overrides them.
 defaults:
   port: 443
