@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-29
+
+### Added
+
+- Prometheus: a new `certminder_certificate_problem` gauge emits one series per
+  active problem (labelled `problem="..."`), so a certificate with several
+  faults is fully visible to Grafana/Alertmanager instead of collapsing to the
+  single `status` label. A healthy target emits no such series.
+
+### Changed
+
+- When a new problem appears on a certificate, the full set of its currently
+  active problems is re-shown together, so a freshly-detected fault never hides
+  the problems already present in the alert stream. A persistent, unchanged set
+  still stays silent (notify-once).
+
 ## [0.7.0] - 2026-07-29
 
 ### Added
@@ -112,7 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/mangrisano/certminder/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/mangrisano/certminder/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/mangrisano/certminder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/mangrisano/certminder/compare/v0.5.0...v0.6.0
