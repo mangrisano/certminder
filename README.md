@@ -100,6 +100,12 @@ bundle of these checks in one line; any explicit check above overrides it.
 
 ## What it alerts on
 
+Each certificate is inspected on every axis, so a certificate with several
+faults raises **one alert per problem** (e.g. expired *and* an untrusted chain
+give two separate events) — nothing is hidden behind a single headline status.
+Every problem is deduplicated independently: it is notified once and clears with
+its own `RECOVERED` event.
+
 | Event                  | Severity | Trigger                                    |
 | ---------------------- | -------- | ------------------------------------------ |
 | `EXPIRING`             | warning  | within `--days` of expiry                  |
@@ -109,9 +115,11 @@ bundle of these checks in one line; any explicit check above overrides it.
 | `CHAIN_UNTRUSTED`      | critical | chain fails to validate                    |
 | `HOSTNAME_MISMATCH`    | critical | cert does not match the hostname           |
 | `POLICY_VIOLATION`     | critical | fails an opt-in policy check (see below)   |
+| `WEAK_CRYPTO`          | warning  | small key or SHA-1/MD5 signature           |
+| `CHAIN_EXPIRING`       | warning  | an intermediate/root CA is expired or near expiry |
 | `FINGERPRINT_CHANGED`  | warning  | fingerprint differs from last cycle        |
 | `UNREACHABLE`          | critical | host/handshake failed                      |
-| `RECOVERED`            | info     | a prior problem cleared                    |
+| `RECOVERED`            | info     | a specific problem cleared                 |
 
 Each condition alerts **once**; certminder remembers it and stays quiet until it
 changes, then sends a single recovery notice.
