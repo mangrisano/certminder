@@ -173,6 +173,26 @@ def test_startup_report_defaults_true_and_can_be_disabled(tmp_path):
     assert load_config(off).startup_report is False
 
 
+def test_renotify_after_and_heartbeat_options(tmp_path):
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            renotify_after: 12h
+            heartbeat: false
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.renotify_after == 12 * 3600
+    assert cfg.heartbeat is False
+
+    default = load_config(_write(tmp_path, "targets:\n  - host: example.com\n"))
+    assert default.renotify_after is None
+    assert default.heartbeat is True
+
+
 def test_missing_file_is_error(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yml")

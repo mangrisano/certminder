@@ -56,6 +56,8 @@ class Config:
     concurrency: int = 8
     prometheus_file: Path | None = None
     startup_report: bool = True
+    renotify_after: int | None = None
+    heartbeat: bool = True
 
 
 def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
@@ -139,4 +141,10 @@ def load_config(path: str | Path) -> Config:
             else None
         ),
         startup_report=bool(data.get("startup_report", True)),
+        renotify_after=(
+            parse_duration(data["renotify_after"])
+            if data.get("renotify_after")
+            else None
+        ),
+        heartbeat=bool(data.get("heartbeat", True)),
     )

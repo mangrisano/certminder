@@ -79,3 +79,18 @@ def test_run_once_report_all_re_reports_active_problems(monkeypatch, tmp_path):
     again = run_once(config, notifiers=[], report_all=True)
     assert len(again.events) == 1
     assert again.events[0].kind.value == "chain_untrusted"
+
+
+def test_log_heartbeat_prints_summary(capsys):
+    from certminder.scheduler import CycleReport, _log_heartbeat
+
+    t = Target(host="a.com", port=443)
+    report = CycleReport(
+        results=[make_result(t, "VALID"), make_result(t, "EXPIRED", days_to_expire=-1)]
+    )
+    _log_heartbeat(report)
+    out = capsys.readouterr().out
+    assert "[hb]" in out
+    assert "2 target(s)" in out
+    assert "1 ok" in out
+    assert "1 with problems" in out

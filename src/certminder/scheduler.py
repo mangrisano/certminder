@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from certminder.config import Config
 from certminder.engine import check_target
@@ -82,9 +83,12 @@ def run_once(
         )
 
     all_events: list[Event] = []
+    now = time.time()
     for result in results:
         previous = TargetState() if report_all else store.get(result.target.name)
-        events, new_state = evaluate(result, previous)
+        events, new_state = evaluate(
+            result, previous, now=now, renotify_after=config.renotify_after
+        )
         store.set(result.target.name, new_state)
         all_events.extend(events)
 
@@ -100,16 +104,30 @@ def run_once(
     return CycleReport(results=results, events=all_events)
 
 
+def _log_heartbeat(report: CycleReport) -> None:
+    """Print a one-line cycle summary so a quiet daemon is visibly alive."""
+    total = len(report.results)
+    healthy = sum(1 for r in report.results if r.status == "VALID")
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(
+        f"{stamp} [hb] cycle complete: {total} target(s), "
+        f"{healthy} ok, {total - healthy} with problems"
+    )
+
+
 def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
     """Run inspection cycles forever, sleeping ``interval`` between them.
 
     The first cycle honours ``startup_report``: when enabled it reports every
     currently-active problem, so a (re)start surfaces the current state instead
-    of waiting for the next change.
+    of waiting for the next change. When ``heartbeat`` is on, a one-line summary
+    is printed after each cycle so a quiet daemon is visibly alive.
     """
     notifiers = build_notifiers(config)
     report_all = config.startup_report
     while True:
-        run_once(config, notifiers, report_all=report_all)
+        report = run_once(config, notifiers, report_all=report_all)
         report_all = False
+        if config.heartbeat:
+            _log_heartbeat(report)
         time.sleep(config.interval)

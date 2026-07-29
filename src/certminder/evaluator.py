@@ -10,6 +10,8 @@ single ``RECOVERED`` event is emitted per problem that clears.
 
 from __future__ import annotations
 
+import time
+
 from certminder.models import CheckResult, Event, EventKind, Severity
 from certminder.state import TargetState
 
@@ -154,25 +156,44 @@ def _resolved_event(name: str, key: str) -> Event:
 
 
 def evaluate(
-    result: CheckResult, previous: TargetState
+    result: CheckResult,
+    previous: TargetState,
+    *,
+    now: float | None = None,
+    renotify_after: int | None = None,
 ) -> tuple[list[Event], TargetState]:
     """Compare ``result`` against ``previous`` and return (events, new_state).
 
     Emits one event per newly-appeared problem, one INFO event per problem that
     has just cleared, and a fingerprint-change event on rotation. Every problem
     is tracked in ``active_alerts`` so a persistent fault is notified once, not
-    every cycle.
+    every cycle. When ``renotify_after`` (seconds) is set, a still-active
+    problem is re-emitted once that long has elapsed since it was last notified,
+    so a persistent fault does not stay silent forever.
     """
+    now = time.time() if now is None else now
     events: list[Event] = []
     name = result.target.name
     active = set(previous.active_alerts)
+    prev_notified = previous.notified_at
+
+    def _due(key: str) -> bool:
+        """Emit this key now? True when new, or its renotify interval elapsed."""
+        if key not in active:
+            return True
+        last = prev_notified.get(key)
+        return (
+            renotify_after is not None
+            and last is not None
+            and now - last >= renotify_after
+        )
 
     # Unreachable: the certificate cannot be assessed, so surface only that,
-    # deduplicated. Any per-problem alerts are dropped (unknown now) and
-    # re-raised when the host returns.
+    # deduplicated (subject to renotify). Any per-problem alerts are dropped
+    # (unknown now) and re-raised when the host returns.
     if not result.reachable:
         key = f"{name}|{EventKind.UNREACHABLE.value}"
-        if key not in active:
+        if _due(key):
             events.append(
                 Event(
                     target_name=name,
@@ -182,10 +203,14 @@ def evaluate(
                     details={"error": result.error, "exit_code": result.exit_code},
                 )
             )
+            notified = now
+        else:
+            notified = prev_notified.get(key, now)
         return events, TargetState(
             fingerprint=previous.fingerprint,
             status=result.status,
             active_alerts=[key],
+            notified_at={key: notified},
         )
 
     # Fingerprint change: report every rotation (transient, not tracked).
@@ -208,13 +233,18 @@ def evaluate(
     by_key = {event.key(): event for event in problems}
     new_active = set(by_key)
 
-    # When a new problem appears, re-emit the FULL current set so the log always
-    # shows every active problem for this certificate together — a new fault
-    # never hides the ones already present. Resolutions are reported per problem,
-    # and an unchanged set stays silent (notify-once).
-    if new_active - active:
-        for key in sorted(new_active):
+    # A new problem re-shows the FULL current set, so a fresh fault never hides
+    # the ones already present. Otherwise each still-active problem is re-emitted
+    # only when its renotify interval has elapsed. Resolutions are per problem.
+    force_full = bool(new_active - active)
+    notified: dict[str, float] = {}
+    for key in sorted(new_active):
+        if force_full or _due(key):
             events.append(by_key[key])
+            notified[key] = now
+        else:
+            notified[key] = prev_notified.get(key, now)
+
     for key in sorted(active - new_active):
         events.append(_resolved_event(name, key))
 
@@ -222,4 +252,5 @@ def evaluate(
         fingerprint=result.fingerprint or previous.fingerprint,
         status=result.status,
         active_alerts=sorted(new_active),
+        notified_at=notified,
     )

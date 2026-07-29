@@ -33,6 +33,21 @@ def test_unknown_target_returns_empty_state(tmp_path):
     assert state.active_alerts == []
 
 
+def test_roundtrip_preserves_notified_at(tmp_path):
+    path = tmp_path / "state.json"
+    store = StateStore(path)
+    store.set(
+        "example.com:443",
+        TargetState(
+            active_alerts=["example.com:443|expired"],
+            notified_at={"example.com:443|expired": 1234.0},
+        ),
+    )
+    store.save()
+    state = StateStore(path).get("example.com:443")
+    assert state.notified_at == {"example.com:443|expired": 1234.0}
+
+
 def test_corrupt_state_file_is_ignored(tmp_path):
     path = tmp_path / "state.json"
     path.write_text("{ not json")

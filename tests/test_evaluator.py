@@ -225,3 +225,44 @@ def test_unreachable_emits_once_and_keeps_fingerprint(target):
     # Still unreachable next cycle: no repeat.
     events2, _ = evaluate(result, state)
     assert events2 == []
+
+
+def test_renotify_after_reemits_persistent_problem(target):
+    result = make_result(
+        target, "EXPIRED", days_to_expire=-5, raw={"status": "EXPIRED"}
+    )
+    events, state = evaluate(
+        result, TargetState(fingerprint="AA:BB"), now=0.0, renotify_after=3600
+    )
+    assert len(events) == 1  # first alert
+
+    # Halfway through the window: still silent.
+    events2, state2 = evaluate(result, state, now=1800.0, renotify_after=3600)
+    assert events2 == []
+
+    # Window elapsed: the still-active problem is re-emitted.
+    events3, _ = evaluate(result, state2, now=3600.0, renotify_after=3600)
+    assert len(events3) == 1
+    assert events3[0].kind is EventKind.EXPIRED
+
+
+def test_no_renotify_when_disabled(target):
+    result = make_result(
+        target, "EXPIRED", days_to_expire=-5, raw={"status": "EXPIRED"}
+    )
+    _, state = evaluate(result, TargetState(fingerprint="AA:BB"), now=0.0)
+    # Without renotify_after the problem stays silent no matter how long passes.
+    events, _ = evaluate(result, state, now=1_000_000.0)
+    assert events == []
+
+
+def test_renotify_applies_to_unreachable(target):
+    result = make_result(
+        target, "UNREACHABLE", exit_code=1, error="timeout", fingerprint=None
+    )
+    _, state = evaluate(
+        result, TargetState(fingerprint="AA:BB"), now=0.0, renotify_after=3600
+    )
+    events, _ = evaluate(result, state, now=3600.0, renotify_after=3600)
+    assert len(events) == 1
+    assert events[0].kind is EventKind.UNREACHABLE
