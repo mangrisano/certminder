@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-29
+
+### Changed
+
+- First stable release. certminder has been running in production and its
+  configuration and CLI are now considered stable, so the package is classified
+  as Production/Stable and follows semantic versioning from here on. No
+  functional change over 0.11.0.
+
 ## [0.11.0] - 2026-07-29
 
 ### Added
@@ -168,7 +177,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/mangrisano/certminder/compare/v0.11.0...v1.0.0
 [0.11.0]: https://github.com/mangrisano/certminder/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/mangrisano/certminder/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/mangrisano/certminder/compare/v0.8.0...v0.9.0
