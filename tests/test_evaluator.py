@@ -171,6 +171,27 @@ def test_one_problem_resolves_while_another_persists(target):
     assert any(k.endswith("|expired") for k in state2.active_alerts)
 
 
+def test_new_problem_reshows_the_full_active_set(target):
+    # Start with only an untrusted chain.
+    chain_only = make_result(
+        target, "CHAIN_UNTRUSTED", chain_trusted=False, raw={"status": "VALID"}
+    )
+    _, state = evaluate(chain_only, TargetState(fingerprint="AA:BB"))
+
+    # A hostname mismatch now appears too: the log must show BOTH, so the newly
+    # detected problem does not hide the chain problem already present.
+    both = make_result(
+        target,
+        "CHAIN_UNTRUSTED",
+        chain_trusted=False,
+        hostname_match=False,
+        raw={"status": "VALID"},
+    )
+    events, _ = evaluate(both, state)
+    kinds = {e.kind for e in events}
+    assert kinds == {EventKind.CHAIN_UNTRUSTED, EventKind.HOSTNAME_MISMATCH}
+
+
 def test_fingerprint_change_emits_event(target):
     result = make_result(target, "VALID", fingerprint="CC:DD", raw={"status": "VALID"})
     events, state = evaluate(result, TargetState(fingerprint="AA:BB"))

@@ -14,7 +14,7 @@ from certminder.models import CheckResult, Event, EventKind, Severity
 from certminder.state import TargetState
 
 
-def _detect_problems(result: CheckResult) -> list[Event]:
+def detect_problems(result: CheckResult) -> list[Event]:
     """Return one event per distinct problem found on the certificate.
 
     Every dimension certinspect reports is inspected independently, so a
@@ -204,15 +204,17 @@ def evaluate(
             )
         )
 
-    problems = _detect_problems(result)
+    problems = detect_problems(result)
     by_key = {event.key(): event for event in problems}
     new_active = set(by_key)
 
-    # Newly-appeared problems.
-    for key in sorted(new_active - active):
-        events.append(by_key[key])
-
-    # Problems that were active last cycle and have now cleared.
+    # When a new problem appears, re-emit the FULL current set so the log always
+    # shows every active problem for this certificate together — a new fault
+    # never hides the ones already present. Resolutions are reported per problem,
+    # and an unchanged set stays silent (notify-once).
+    if new_active - active:
+        for key in sorted(new_active):
+            events.append(by_key[key])
     for key in sorted(active - new_active):
         events.append(_resolved_event(name, key))
 
