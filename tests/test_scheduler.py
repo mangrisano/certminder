@@ -61,3 +61,21 @@ def test_run_once_no_prometheus_by_default(monkeypatch, tmp_path):
     )
     run_once(_config(tmp_path), notifiers=[])
     assert not (tmp_path / "certminder.prom").exists()
+
+
+def test_run_once_report_all_re_reports_active_problems(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "certminder.scheduler.check_target",
+        lambda t, _bin: make_result(
+            t, "CHAIN_UNTRUSTED", chain_trusted=False, raw={"status": "VALID"}
+        ),
+    )
+    config = _config(tmp_path)
+    # First cycle records the problem and alerts once.
+    assert len(run_once(config, notifiers=[]).events) == 1
+    # A normal second cycle is deduplicated (silent).
+    assert run_once(config, notifiers=[]).events == []
+    # report_all re-reports the still-active problem, e.g. on a fresh start.
+    again = run_once(config, notifiers=[], report_all=True)
+    assert len(again.events) == 1
+    assert again.events[0].kind.value == "chain_untrusted"

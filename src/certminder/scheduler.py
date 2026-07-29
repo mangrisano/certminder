@@ -12,7 +12,7 @@ from certminder.evaluator import evaluate
 from certminder.metrics import write_prometheus
 from certminder.models import CheckResult, Event
 from certminder.notifiers import Notifier, build_notifier
-from certminder.state import StateStore
+from certminder.state import StateStore, TargetState
 
 
 @dataclass
@@ -57,8 +57,19 @@ def build_notifiers(config: Config) -> list[Notifier]:
     return [build_notifier(n.type, n.options) for n in config.notifiers]
 
 
-def run_once(config: Config, notifiers: list[Notifier] | None = None) -> CycleReport:
-    """Run a single inspection cycle and return its results and events."""
+def run_once(
+    config: Config,
+    notifiers: list[Notifier] | None = None,
+    *,
+    report_all: bool = False,
+) -> CycleReport:
+    """Run a single inspection cycle and return its results and events.
+
+    With ``report_all`` set, every currently-active problem is reported as if
+    first seen (the stored state is ignored for event generation, but still
+    updated), so a fresh start can surface the complete current picture instead
+    of staying silent until something changes.
+    """
     notifiers = notifiers if notifiers is not None else build_notifiers(config)
     store = StateStore(config.state_file)
 
@@ -72,7 +83,7 @@ def run_once(config: Config, notifiers: list[Notifier] | None = None) -> CycleRe
 
     all_events: list[Event] = []
     for result in results:
-        previous = store.get(result.target.name)
+        previous = TargetState() if report_all else store.get(result.target.name)
         events, new_state = evaluate(result, previous)
         store.set(result.target.name, new_state)
         all_events.extend(events)
@@ -90,8 +101,15 @@ def run_once(config: Config, notifiers: list[Notifier] | None = None) -> CycleRe
 
 
 def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
-    """Run inspection cycles forever, sleeping ``interval`` between them."""
+    """Run inspection cycles forever, sleeping ``interval`` between them.
+
+    The first cycle honours ``startup_report``: when enabled it reports every
+    currently-active problem, so a (re)start surfaces the current state instead
+    of waiting for the next change.
+    """
     notifiers = build_notifiers(config)
+    report_all = config.startup_report
     while True:
-        run_once(config, notifiers)
+        run_once(config, notifiers, report_all=report_all)
+        report_all = False
         time.sleep(config.interval)
