@@ -30,6 +30,21 @@ def test_build_notifier_unknown_type():
         build_notifier("does-not-exist", {})
 
 
+def test_min_severity_filters_below_threshold(capsys):
+    notifier = build_notifier("console", {"min_severity": "critical"})
+    notifier.send(
+        [_event(Severity.WARNING, "x: warn"), _event(Severity.CRITICAL, "x: down")]
+    )
+    captured = capsys.readouterr()
+    assert "x: warn" not in (captured.out + captured.err)  # WARNING dropped
+    assert "x: down" in captured.err  # CRITICAL delivered
+
+
+def test_min_severity_invalid_value():
+    with pytest.raises(ValueError):
+        build_notifier("console", {"min_severity": "bogus"})
+
+
 def test_console_no_timestamp_by_default(capsys):
     ConsoleNotifier().send([_event(Severity.CRITICAL, "x: down")])
     assert capsys.readouterr().err.strip() == "[crit] x: down"
