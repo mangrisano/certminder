@@ -43,6 +43,28 @@ def test_render_unreachable_omits_expiry_but_sets_up_zero():
     assert up_line.endswith(" 0")
 
 
+def test_render_emits_a_series_per_problem():
+    result = _result(
+        "EXPIRED", days_to_expire=-5, chain_trusted=False, raw={"status": "EXPIRED"}
+    )
+    text = render([result], now=1000.0)
+    assert "certminder_certificate_problem{" in text
+    assert 'problem="expired"' in text
+    assert 'problem="chain_untrusted"' in text
+
+
+def test_render_problem_series_for_unreachable():
+    text = render([_result("UNREACHABLE", days_to_expire=None)], now=1000.0)
+    assert 'problem="unreachable"' in text
+
+
+def test_render_no_problem_series_when_valid():
+    text = render(
+        [_result("VALID", days_to_expire=42, raw={"status": "VALID"})], now=1000.0
+    )
+    assert "certminder_certificate_problem{" not in text
+
+
 def test_render_has_help_type_and_timestamp():
     text = render([_result("VALID")], now=1700000000.0)
     assert "# HELP certminder_certificate_expiry_days" in text

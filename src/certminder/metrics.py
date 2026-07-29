@@ -12,6 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from certminder.evaluator import detect_problems
 from certminder.models import CheckResult
 
 
@@ -30,6 +31,29 @@ def _labels(result: CheckResult) -> str:
     }
     inner = ",".join(f'{k}="{_escape_label(v)}"' for k, v in parts.items())
     return "{" + inner + "}"
+
+
+def _problem_labels(result: CheckResult, problem: str) -> str:
+    target = result.target
+    parts = {
+        "target": target.name,
+        "host": target.host,
+        "port": str(target.port),
+        "problem": problem,
+    }
+    inner = ",".join(f'{k}="{_escape_label(v)}"' for k, v in parts.items())
+    return "{" + inner + "}"
+
+
+def _problem_kinds(result: CheckResult) -> list[str]:
+    """Return the kind value of every active problem on ``result``.
+
+    Mirrors the evaluator, so a certificate with several faults produces one
+    series per fault instead of collapsing to a single headline status.
+    """
+    if not result.reachable:
+        return ["unreachable"]
+    return [event.kind.value for event in detect_problems(result)]
 
 
 def render(results: list[CheckResult], *, now: float | None = None) -> str:
@@ -61,6 +85,16 @@ def render(results: list[CheckResult], *, now: float | None = None) -> str:
     for result in results:
         up = 1 if result.reachable else 0
         lines.append(f"certminder_target_up{_labels(result)} {up}")
+
+    lines += [
+        "# HELP certminder_certificate_problem An active problem on the certificate (one series per problem).",
+        "# TYPE certminder_certificate_problem gauge",
+    ]
+    for result in results:
+        for problem in _problem_kinds(result):
+            lines.append(
+                f"certminder_certificate_problem{_problem_labels(result, problem)} 1"
+            )
 
     lines += [
         "# HELP certminder_last_run_timestamp_seconds Unix time of the last completed cycle.",
