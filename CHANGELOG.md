@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-29
+
+### Added
+
+- `renotify_after` (config duration, off by default): re-emit a still-active
+  problem once this long has elapsed since its last alert, so a persistent
+  fault (e.g. an expired certificate left unfixed) does not stay silent between
+  restarts.
+- `heartbeat` (config, on by default): print a one-line summary after each
+  daemon cycle (`[hb] cycle complete: N target(s), X ok, Y with problems`) so a
+  quiet daemon is visibly alive rather than looking stuck.
+
+### Changed
+
+- The Docker image sets `PYTHONUNBUFFERED=1` so log lines (including INFO
+  `RECOVERED` events and the heartbeat) appear immediately in `docker logs` /
+  journald instead of being block-buffered.
+
 ## [0.9.0] - 2026-07-29
 
 ### Added
@@ -138,7 +156,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/mangrisano/certminder/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/mangrisano/certminder/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/mangrisano/certminder/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/mangrisano/certminder/compare/v0.6.1...v0.7.0
