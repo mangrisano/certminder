@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-30
+
+### Added
+
+- `failure_threshold` (default 1): flap dampening. A problem must be detected
+  for this many consecutive cycles before it alerts (and an unreachable host
+  must stay down that long), so a one-cycle network blip no longer raises a
+  false alarm. Pairs well with certinspect's `--retries`. The startup digest
+  still reports the current state immediately.
+
 ## [1.3.0] - 2026-07-30
 
 ### Added
@@ -23,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Untrusted-chain alerts now include certinspect's `chain_diagnosis` when
   available (e.g. `[CHAIN_MISMATCH] the server sent intermediate(s) ... that do
-  not sign the leaf`), so the notification says *why* the chain failed and how
+not sign the leaf`), so the notification says _why_ the chain failed and how
   to fix it instead of only the raw OpenSSL error. Requires certinspect >= 1.10.
 
 ### Changed
@@ -221,7 +231,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/mangrisano/certminder/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mangrisano/certminder/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mangrisano/certminder/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/mangrisano/certminder/compare/v1.1.0...v1.1.1
