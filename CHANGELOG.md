@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-30
+
+### Added
+
+- Per-target (and `defaults`) network-robustness options forwarded to
+  certinspect: `retries` (retry transient connection failures), `connect_timeout`
+  and `read_timeout` (split the single `timeout`). `retries` in particular
+  prevents a transient network blip from being recorded as a false `UNREACHABLE`
+  at all, rather than dampening it after the fact. Requires certinspect >= 1.11
+  (now the minimum dependency).
+
 ## [1.4.0] - 2026-07-30
 
 ### Added
@@ -231,7 +242,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/mangrisano/certminder/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mangrisano/certminder/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mangrisano/certminder/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mangrisano/certminder/compare/v1.1.1...v1.2.0
