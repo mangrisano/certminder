@@ -146,6 +146,9 @@ fault is never silent for long, and `heartbeat` (on by default) prints a
 one-line summary after each cycle so a quiet daemon is visibly alive. Set
 `failure_threshold` (e.g. `2`) to require a problem to persist that many
 consecutive cycles before it alerts, so a one-cycle network blip is dampened.
+For transient network errors a per-target `retries` (forwarded to certinspect)
+is often the cleaner fix — it retries the check itself, so a blip never becomes
+a bad reading; `connect_timeout`/`read_timeout` split the per-target `timeout`.
 
 | Event                  | Severity | Trigger                                           |
 | ---------------------- | -------- | ------------------------------------------------- |

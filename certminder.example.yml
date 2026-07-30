@@ -47,6 +47,9 @@ defaults:
   days: 30            # EXPIRING window (certinspect --days)
   critical_days: 15   # CRITICAL window (certinspect --critical-days)
   timeout: 5
+  retries: 2          # retry transient connection failures (avoids false UNREACHABLE)
+  # connect_timeout / read_timeout: split the single timeout if a server has a
+  # slow handshake (both default to `timeout`). Needs certinspect >= 1.11.
   # Optional maximum-validity policy (certinspect exit code 9 ->
   # POLICY_VIOLATION). Use ONE of the two:
   #   cab_forum: true      # date-aware CA/Browser Forum cap (398->200->100->47)
