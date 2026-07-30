@@ -294,3 +294,26 @@ def test_only_groups_no_top_level_targets_is_valid(tmp_path):
     )
     config = load_config(path)
     assert len(config.targets) == 1
+
+
+def test_failure_threshold_parses(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        failure_threshold: 3
+        targets:
+          - host: example.com
+        """,
+    )
+    assert load_config(path).failure_threshold == 3
+
+
+def test_failure_threshold_defaults_to_one(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+        """,
+    )
+    assert load_config(path).failure_threshold == 1

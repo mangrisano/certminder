@@ -31,6 +31,54 @@ def test_expiring_emits_warning_once(target):
     assert events2 == []
 
 
+def test_failure_threshold_dampens_single_cycle_blip(target):
+    result = make_result(
+        target, "EXPIRING", days_to_expire=12, raw={"status": "EXPIRING"}
+    )
+    events, state = evaluate(
+        result, TargetState(fingerprint="AA:BB"), failure_threshold=2
+    )
+    assert events == []
+    assert state.active_alerts == []
+    assert state.pending.get(f"{target.name}|expiring") == 1
+
+
+def test_failure_threshold_alerts_after_consecutive_cycles(target):
+    result = make_result(
+        target, "EXPIRING", days_to_expire=12, raw={"status": "EXPIRING"}
+    )
+    _, state = evaluate(result, TargetState(fingerprint="AA:BB"), failure_threshold=2)
+    events, state2 = evaluate(result, state, failure_threshold=2)
+    assert len(events) == 1
+    assert events[0].kind is EventKind.EXPIRING
+    assert state2.active_alerts == [f"{target.name}|expiring"]
+    assert state2.pending == {}
+
+
+def test_failure_threshold_resets_when_problem_disappears(target):
+    bad = make_result(target, "EXPIRING", days_to_expire=12, raw={"status": "EXPIRING"})
+    good = make_result(target, "VALID", raw={"status": "VALID"})
+    _, state = evaluate(bad, TargetState(fingerprint="AA:BB"), failure_threshold=2)
+    assert state.pending  # counted once, not yet alerted
+    events, state2 = evaluate(good, state, failure_threshold=2)
+    assert events == []
+    assert state2.active_alerts == []
+    assert state2.pending == {}
+
+
+def test_failure_threshold_dampens_unreachable(target):
+    result = make_result(target, "UNREACHABLE", error="timeout")
+    events, state = evaluate(
+        result, TargetState(fingerprint="AA:BB"), failure_threshold=2
+    )
+    assert events == []
+    assert state.active_alerts == []
+    assert state.pending.get(f"{target.name}|unreachable") == 1
+    events2, _ = evaluate(result, state, failure_threshold=2)
+    assert len(events2) == 1
+    assert events2[0].kind is EventKind.UNREACHABLE
+
+
 def test_critical_severity(target):
     result = make_result(
         target, "CRITICAL", days_to_expire=3, raw={"status": "CRITICAL"}

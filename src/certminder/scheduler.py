@@ -86,8 +86,15 @@ def run_once(
     now = time.time()
     for result in results:
         previous = TargetState() if report_all else store.get(result.target.name)
+        # On a startup digest we re-show everything, so confirm immediately;
+        # flap dampening only applies to ongoing change-driven cycles.
+        threshold = 1 if report_all else config.failure_threshold
         events, new_state = evaluate(
-            result, previous, now=now, renotify_after=config.renotify_after
+            result,
+            previous,
+            now=now,
+            renotify_after=config.renotify_after,
+            failure_threshold=threshold,
         )
         store.set(result.target.name, new_state)
         all_events.extend(events)

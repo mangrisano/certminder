@@ -23,6 +23,7 @@ class TargetState:
     status: str | None = None
     active_alerts: list[str] = field(default_factory=list)
     notified_at: dict[str, float] = field(default_factory=dict)
+    pending: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -30,6 +31,7 @@ class TargetState:
             "status": self.status,
             "active_alerts": sorted(self.active_alerts),
             "notified_at": self.notified_at,
+            "pending": self.pending,
         }
 
     @classmethod
@@ -39,6 +41,7 @@ class TargetState:
             status=data.get("status"),
             active_alerts=list(data.get("active_alerts", [])),
             notified_at=dict(data.get("notified_at", {})),
+            pending=dict(data.get("pending", {})),
         )
 
 

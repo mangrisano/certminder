@@ -48,6 +48,18 @@ def test_roundtrip_preserves_notified_at(tmp_path):
     assert state.notified_at == {"example.com:443|expired": 1234.0}
 
 
+def test_roundtrip_preserves_pending(tmp_path):
+    path = tmp_path / "state.json"
+    store = StateStore(path)
+    store.set(
+        "example.com:443",
+        TargetState(pending={"example.com:443|unreachable": 1}),
+    )
+    store.save()
+    state = StateStore(path).get("example.com:443")
+    assert state.pending == {"example.com:443|unreachable": 1}
+
+
 def test_corrupt_state_file_is_ignored(tmp_path):
     path = tmp_path / "state.json"
     path.write_text("{ not json")

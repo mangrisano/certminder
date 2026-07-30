@@ -65,6 +65,7 @@ class Config:
     startup_report: bool = True
     renotify_after: int | None = None
     heartbeat: bool = True
+    failure_threshold: int = 1
 
 
 def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
@@ -180,4 +181,5 @@ def load_config(path: str | Path) -> Config:
             else None
         ),
         heartbeat=bool(data.get("heartbeat", True)),
+        failure_threshold=max(1, int(data.get("failure_threshold", 1))),
     )

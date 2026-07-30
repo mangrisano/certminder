@@ -159,12 +159,28 @@ def _resolved_event(name: str, key: str) -> Event:
     )
 
 
+def _confirm(
+    key: str, active: set[str], pending: dict[str, int], threshold: int
+) -> tuple[bool, int]:
+    """Return (confirmed, consecutive_count) for a detected problem.
+
+    A problem already active stays active. A newly-seen problem is only
+    confirmed once it has been detected ``threshold`` consecutive cycles; until
+    then it stays pending (silent) with an incrementing count.
+    """
+    if key in active:
+        return True, 0
+    count = pending.get(key, 0) + 1
+    return count >= threshold, count
+
+
 def evaluate(
     result: CheckResult,
     previous: TargetState,
     *,
     now: float | None = None,
     renotify_after: int | None = None,
+    failure_threshold: int = 1,
 ) -> tuple[list[Event], TargetState]:
     """Compare ``result`` against ``previous`` and return (events, new_state).
 
@@ -173,7 +189,9 @@ def evaluate(
     is tracked in ``active_alerts`` so a persistent fault is notified once, not
     every cycle. When ``renotify_after`` (seconds) is set, a still-active
     problem is re-emitted once that long has elapsed since it was last notified,
-    so a persistent fault does not stay silent forever.
+    so a persistent fault does not stay silent forever. With
+    ``failure_threshold`` > 1 a problem must be detected that many consecutive
+    cycles before it alerts, so a one-cycle blip is dampened.
     """
     now = time.time() if now is None else now
     events: list[Event] = []
@@ -198,6 +216,14 @@ def evaluate(
     # (unknown now) and re-raised when the host returns.
     if not result.reachable:
         key = f"{name}|{EventKind.UNREACHABLE.value}"
+        confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
+        if not confirmed:
+            # Within the flap window: stay silent, just remember the count.
+            return events, TargetState(
+                fingerprint=previous.fingerprint,
+                status=result.status,
+                pending={key: count},
+            )
         if EventKind.UNREACHABLE.value not in expected and _due(key):
             events.append(
                 Event(
@@ -238,11 +264,23 @@ def evaluate(
         event for event in detect_problems(result) if event.kind.value not in expected
     ]
     by_key = {event.key(): event for event in problems}
-    new_active = set(by_key)
 
-    # A new problem re-shows the FULL current set, so a fresh fault never hides
-    # the ones already present. Otherwise each still-active problem is re-emitted
-    # only when its renotify interval has elapsed. Resolutions are per problem.
+    # A detected problem is only promoted to an active alert once it has
+    # persisted for ``failure_threshold`` consecutive cycles; until then it is
+    # tracked as pending and stays silent, so a one-cycle blip never alerts.
+    new_active: set[str] = set()
+    new_pending: dict[str, int] = {}
+    for key in by_key:
+        confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
+        if confirmed:
+            new_active.add(key)
+        else:
+            new_pending[key] = count
+
+    # A newly-confirmed problem re-shows the FULL current set, so a fresh fault
+    # never hides the ones already present. Otherwise each still-active problem
+    # is re-emitted only when its renotify interval has elapsed. Resolutions are
+    # per problem.
     force_full = bool(new_active - active)
     notified: dict[str, float] = {}
     for key in sorted(new_active):
@@ -260,4 +298,5 @@ def evaluate(
         status=result.status,
         active_alerts=sorted(new_active),
         notified_at=notified,
+        pending=new_pending,
     )
