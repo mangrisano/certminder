@@ -71,8 +71,12 @@ def detect_problems(result: CheckResult) -> list[Event]:
 
     # Chain of trust.
     if result.chain_trusted is False:
-        reason = info.get("chain_error")
-        detail = f" ({reason})" if reason else ""
+        diagnosis = info.get("chain_diagnosis")
+        if diagnosis:
+            detail = f" [{diagnosis['code']}] {diagnosis['detail']}"
+        else:
+            reason = info.get("chain_error")
+            detail = f" ({reason})" if reason else ""
         add(
             EventKind.CHAIN_UNTRUSTED,
             Severity.CRITICAL,

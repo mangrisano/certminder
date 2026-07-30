@@ -82,6 +82,26 @@ def test_chain_untrusted_emits_critical(target):
     assert "unable to get local issuer" in events[0].message
 
 
+def test_chain_untrusted_prefers_diagnosis(target):
+    result = make_result(
+        target,
+        "CHAIN_UNTRUSTED",
+        chain_trusted=False,
+        raw={
+            "status": "VALID",
+            "chain_error": "unable to get local issuer",
+            "chain_diagnosis": {
+                "code": "CHAIN_MISMATCH",
+                "detail": "the sent intermediates do not sign the leaf",
+            },
+        },
+    )
+    events, _ = evaluate(result, TargetState(fingerprint="AA:BB"))
+    assert events[0].kind is EventKind.CHAIN_UNTRUSTED
+    assert "CHAIN_MISMATCH" in events[0].message
+    assert "do not sign the leaf" in events[0].message
+
+
 def test_revoked_is_critical(target):
     result = make_result(
         target, "REVOKED", revocation="REVOKED", raw={"status": "VALID"}
