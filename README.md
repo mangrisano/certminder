@@ -65,6 +65,7 @@ defaults:
   verify: true
   days: 30
   critical_days: 15
+  retries: 2 # retry transient connection failures (forwarded to certinspect)
 notifiers:
   - type: console
   - type: slack
@@ -128,6 +129,35 @@ groups:
         cafile: /etc/certminder/other-ca.pem # per-target override wins
 targets:
   - host: public.example.com # ungrouped, uses only defaults
+```
+
+### Robustness against transient failures
+
+A one-off network blip should not page you. Two knobs, at different layers, keep
+transient errors from turning into false alerts (typically a false
+`UNREACHABLE`):
+
+- **`retries`** (per-target or in `defaults`, forwarded to certinspect): retries
+  the check itself on a transient connection failure (timeout, refused/reset,
+  DNS), so a blip is simply retried and never recorded as a bad reading. This is
+  the cleaner fix — it adds **no delay** to genuine alerts. `connect_timeout`
+  and `read_timeout` optionally split the single `timeout` (fail fast on a dead
+  host, still allow a slow handshake). These need certinspect >= 1.11.
+- **`failure_threshold`** (top-level, default `1`): a broader safety net — a
+  problem must persist this many consecutive cycles before it alerts. It dampens
+  _any_ flapping problem, but delays a genuine alert by up to one cycle, so
+  prefer `retries` for plain network noise. The startup digest is unaffected
+  (it always reports the current state immediately).
+
+```yaml
+failure_threshold: 1 # default; raise to require N consecutive bad cycles
+defaults:
+  timeout: 10
+  retries: 2 # retry transient network failures before giving up
+targets:
+  - host: slow-handshake.example.com
+    connect_timeout: 3 # fail fast if the TCP connect stalls
+    read_timeout: 20 # but allow a slow TLS handshake
 ```
 
 ## What it alerts on
