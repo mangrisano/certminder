@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not sign the leaf`), so the notification says *why* the chain failed and how
   to fix it instead of only the raw OpenSSL error. Requires certinspect >= 1.10.
 
+### Changed
+
+- The container image now uses a Python 3.13 base, required for the presented
+  chain (`get_unverified_chain`) that powers certinspect's chain diagnosis.
+
 ## [1.1.1] - 2026-07-29
 
 ### Changed

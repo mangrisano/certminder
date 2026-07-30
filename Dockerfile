@@ -13,7 +13,7 @@
 #     -v certminder-state:/var/lib/certminder \
 #     certminder
 
-FROM python:3.12-slim AS build
+FROM python:3.13-slim AS build
 
 WORKDIR /src
 COPY pyproject.toml README.md ./
@@ -22,9 +22,11 @@ COPY src ./src
 RUN pip install --no-cache-dir build \
     && python -m build --wheel --outdir /dist
 
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # certminder shells out to certinspect; both come from PyPI via the wheel's deps.
+# Python 3.13+ is required so certinspect can expose the server-presented chain
+# (get_unverified_chain) and diagnose why an untrusted chain failed.
 # Unbuffered stdout/stderr so log lines (including INFO/RECOVERED and the
 # heartbeat) appear immediately in `docker logs`/journald, not block-buffered.
 ENV PYTHONUNBUFFERED=1
