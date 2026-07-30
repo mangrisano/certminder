@@ -70,6 +70,23 @@ def test_build_command_omits_profile_by_default():
     assert "--profile" not in cmd
 
 
+def test_build_command_includes_network_robustness_flags():
+    target = Target(
+        host="example.com", retries=2, connect_timeout=3.0, read_timeout=8.0
+    )
+    cmd = build_command("certinspect", target)
+    assert cmd[cmd.index("--retries") + 1] == "2"
+    assert cmd[cmd.index("--connect-timeout") + 1] == "3.0"
+    assert cmd[cmd.index("--read-timeout") + 1] == "8.0"
+
+
+def test_build_command_omits_network_robustness_flags_by_default():
+    cmd = build_command("certinspect", Target(host="example.com"))
+    assert "--retries" not in cmd
+    assert "--connect-timeout" not in cmd
+    assert "--read-timeout" not in cmd
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(

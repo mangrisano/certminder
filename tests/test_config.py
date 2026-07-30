@@ -317,3 +317,20 @@ def test_failure_threshold_defaults_to_one(tmp_path):
         """,
     )
     assert load_config(path).failure_threshold == 1
+
+
+def test_network_robustness_keys_accepted(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            retries: 2
+            connect_timeout: 3
+            read_timeout: 8
+        """,
+    )
+    t = load_config(path).targets[0]
+    assert t.retries == 2
+    assert t.connect_timeout == 3
+    assert t.read_timeout == 8

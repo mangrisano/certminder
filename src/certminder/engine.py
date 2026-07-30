@@ -40,6 +40,12 @@ def build_command(bin_path: str, target: Target) -> list[str]:
     ]
     if target.verify:
         cmd.append("--verify")
+    if target.connect_timeout is not None:
+        cmd += ["--connect-timeout", str(target.connect_timeout)]
+    if target.read_timeout is not None:
+        cmd += ["--read-timeout", str(target.read_timeout)]
+    if target.retries:
+        cmd += ["--retries", str(target.retries)]
     if target.starttls:
         cmd += ["--starttls", target.starttls]
     if target.cafile:

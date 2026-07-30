@@ -51,6 +51,9 @@ class Target:
     days: int = 30
     critical_days: int = 15
     timeout: float = 5.0
+    connect_timeout: float | None = None
+    read_timeout: float | None = None
+    retries: int = 0
     starttls: str | None = None
     cafile: str | None = None
     capath: str | None = None
