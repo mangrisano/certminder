@@ -132,11 +132,25 @@ def load_config(path: str | Path) -> Config:
         raise ConfigError("top-level configuration must be a mapping")
 
     raw_targets = data.get("targets") or []
-    if not raw_targets:
-        raise ConfigError("at least one target is required")
-
     defaults = data.get("defaults") or {}
     targets = [_build_target(t, defaults) for t in raw_targets]
+
+    for index, group in enumerate(data.get("groups") or [], start=1):
+        if not isinstance(group, dict):
+            raise ConfigError(f"group #{index} must be a mapping")
+        group_targets = group.get("targets")
+        if not group_targets:
+            raise ConfigError(f"group {group.get('name', index)!r} has no targets")
+        # Group-level keys (other than name/targets) are shared defaults for the
+        # group's targets: global defaults < group settings < per-target.
+        group_defaults = {
+            **defaults,
+            **{k: v for k, v in group.items() if k not in ("name", "targets")},
+        }
+        targets += [_build_target(t, group_defaults) for t in group_targets]
+
+    if not targets:
+        raise ConfigError("at least one target is required")
 
     notifiers = []
     for entry in data.get("notifiers") or [{"type": "console"}]:

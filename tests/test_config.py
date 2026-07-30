@@ -223,3 +223,74 @@ def test_invalid_expect_kind_is_error(tmp_path):
 def test_missing_file_is_error(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yml")
+
+
+def test_groups_apply_shared_settings(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        defaults:
+          days: 30
+        groups:
+          - name: Internal PKI
+            cafile: /etc/certminder/internal-ca.pem
+            verify: true
+            targets:
+              - host: iap.internal.lan
+              - host: trustapp.internal.lan
+                cafile: /etc/certminder/other-ca.pem
+        """,
+    )
+    config = load_config(path)
+    by_host = {t.host: t for t in config.targets}
+    # Group setting is inherited...
+    assert by_host["iap.internal.lan"].cafile == "/etc/certminder/internal-ca.pem"
+    assert by_host["iap.internal.lan"].days == 30  # global default still applies
+    # ...but a per-target value overrides the group.
+    assert by_host["trustapp.internal.lan"].cafile == "/etc/certminder/other-ca.pem"
+
+
+def test_groups_and_top_level_targets_coexist(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: public.example.com
+        groups:
+          - name: Internal
+            cafile: /etc/certminder/internal-ca.pem
+            targets:
+              - host: private.internal.lan
+        """,
+    )
+    config = load_config(path)
+    by_host = {t.host: t for t in config.targets}
+    assert by_host["public.example.com"].cafile is None
+    assert by_host["private.internal.lan"].cafile == "/etc/certminder/internal-ca.pem"
+
+
+def test_group_without_targets_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        groups:
+          - name: Empty
+            cafile: /etc/certminder/internal-ca.pem
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_only_groups_no_top_level_targets_is_valid(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        groups:
+          - name: Internal
+            targets:
+              - host: private.internal.lan
+        """,
+    )
+    config = load_config(path)
+    assert len(config.targets) == 1
