@@ -35,6 +35,11 @@ startup_report: true
 # quiet daemon is visibly alive. Default: true.
 heartbeat: true
 
+# Flap dampening: a problem must be seen this many consecutive cycles before it
+# alerts (and an unreachable host must stay down that long), so a one-cycle blip
+# is ignored. Default: 1 (alert immediately).
+# failure_threshold: 2
+
 # Applied to every target unless the target overrides them.
 defaults:
   port: 443

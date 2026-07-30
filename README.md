@@ -143,7 +143,9 @@ once (`startup_report`, on by default), so a restart surfaces the current
 picture instead of staying silent until the next change. Set `renotify_after`
 (e.g. `24h`) to re-alert a still-active problem periodically so a persistent
 fault is never silent for long, and `heartbeat` (on by default) prints a
-one-line summary after each cycle so a quiet daemon is visibly alive.
+one-line summary after each cycle so a quiet daemon is visibly alive. Set
+`failure_threshold` (e.g. `2`) to require a problem to persist that many
+consecutive cycles before it alerts, so a one-cycle network blip is dampened.
 
 | Event                  | Severity | Trigger                                           |
 | ---------------------- | -------- | ------------------------------------------------- |
