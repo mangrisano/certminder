@@ -1,3 +1,3 @@
 """certminder: continuous TLS certificate monitoring built on top of certinspect."""
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"

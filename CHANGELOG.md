@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-30
+
+### Added
+
+- Untrusted-chain alerts now include certinspect's `chain_diagnosis` when
+  available (e.g. `[CHAIN_MISMATCH] the server sent intermediate(s) ... that do
+  not sign the leaf`), so the notification says *why* the chain failed and how
+  to fix it instead of only the raw OpenSSL error. Requires certinspect >= 1.10.
+
 ## [1.1.1] - 2026-07-29
 
 ### Changed
@@ -197,7 +206,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/mangrisano/certminder/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/mangrisano/certminder/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mangrisano/certminder/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mangrisano/certminder/compare/v0.11.0...v1.0.0
