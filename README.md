@@ -108,6 +108,28 @@ but send only `critical` to Slack. Targets on an internal/private CA take
 `cafile:`/`capath:` so the chain is verified against that bundle instead of the
 public trust store, which avoids false `CHAIN_UNTRUSTED` alerts.
 
+### Grouping targets (shared settings)
+
+Put targets that share settings — say a whole installation behind its own
+internal CA — under a `groups:` entry instead of repeating the keys on every
+target. Group-level keys apply to all of the group's targets; precedence is
+`defaults` < group < per-target. Top-level `targets:` and `groups:` can coexist.
+
+```yaml
+defaults:
+  verify: true
+groups:
+  - name: Site A (internal CA)
+    cafile: /etc/certminder/site-a-ca.pem
+    targets:
+      - host: iap.site-a.lan
+      - host: trustapp.site-a.lan
+      - host: webauth.site-a.lan
+        cafile: /etc/certminder/other-ca.pem # per-target override wins
+targets:
+  - host: public.example.com # ungrouped, uses only defaults
+```
+
 ## What it alerts on
 
 Each certificate is inspected on every axis, so a certificate with several

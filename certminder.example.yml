@@ -111,3 +111,15 @@ targets:
     # revoked, chain_untrusted, hostname_mismatch, policy_violation, weak_crypto,
     # chain_expiring, unreachable.
     expect: [chain_untrusted]   # internal/private CA, expected
+
+# Groups apply shared settings to a set of targets, so a whole installation on
+# its own internal CA is configured once instead of per host. Precedence:
+# defaults < group < per-target. Top-level 'targets:' and 'groups:' can coexist.
+groups:
+  - name: "Site A (internal CA)"
+    cafile: /etc/certminder/site-a-ca.pem
+    targets:
+      - host: iap.site-a.lan
+      - host: trustapp.site-a.lan
+      - host: webauth.site-a.lan
+        cafile: /etc/certminder/other-ca.pem   # per-target override wins
