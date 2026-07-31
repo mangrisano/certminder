@@ -69,6 +69,10 @@ notifiers:
   - type: slack
     webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
     # min_severity: critical   # this sink only gets events at/above this level
+    # kinds: [expired]         # this sink only gets these event types
+    #   (expiring, critical, expired, not_yet_valid, revoked, chain_untrusted,
+    #    hostname_mismatch, policy_violation, weak_crypto, chain_expiring,
+    #    fingerprint_changed, unreachable, recovered)
   - type: webhook
     url: "https://example.com/certminder-hook"
     # optional extra headers, e.g. an auth token

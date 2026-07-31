@@ -105,7 +105,10 @@ bundle of these checks in one line; any explicit check above overrides it.
 
 Any notifier also accepts `min_severity` (`info`/`warning`/`critical`) to
 receive only events at or above that level — e.g. keep everything on the console
-but send only `critical` to Slack. Targets on an internal/private CA take
+but send only `critical` to Slack. A `kinds:` allowlist narrows a sink to
+specific event types instead (e.g. `kinds: [expired]` to be told only about
+expired certificates); `recovered` is itself a kind, so add it to also hear when
+a selected problem clears. Targets on an internal/private CA take
 `cafile:`/`capath:` so the chain is verified against that bundle instead of the
 public trust store, which avoids false `CHAIN_UNTRUSTED` alerts.
 
