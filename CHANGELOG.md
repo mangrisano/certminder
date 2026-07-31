@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-31
+
+### Added
+
+- Per-notifier `kinds` allowlist: scope a sink to specific event types (e.g.
+  `kinds: [expired]` to receive only expired-certificate alerts), complementing
+  the existing `min_severity` filter. `recovered` is itself a kind, so include
+  it to also be told when a selected problem clears.
+
 ## [1.5.0] - 2026-07-30
 
 ### Added
@@ -242,7 +251,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/mangrisano/certminder/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mangrisano/certminder/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mangrisano/certminder/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mangrisano/certminder/compare/v1.2.0...v1.3.0
