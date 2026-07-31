@@ -45,6 +45,36 @@ def test_min_severity_invalid_value():
         build_notifier("console", {"min_severity": "bogus"})
 
 
+def _kind_event(kind: EventKind, message: str) -> Event:
+    return Event(
+        target_name="x", kind=kind, severity=Severity.CRITICAL, message=message
+    )
+
+
+def test_kinds_filters_to_allowlist(capsys):
+    notifier = build_notifier("console", {"kinds": ["expired"]})
+    notifier.send(
+        [
+            _kind_event(EventKind.EXPIRED, "x: expired"),
+            _kind_event(EventKind.CHAIN_UNTRUSTED, "x: bad chain"),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert "x: expired" in captured.err  # allowed kind delivered
+    assert "x: bad chain" not in (captured.out + captured.err)  # other kind dropped
+
+
+def test_kinds_accepts_a_single_string(capsys):
+    notifier = build_notifier("console", {"kinds": "expired"})
+    notifier.send([_kind_event(EventKind.EXPIRED, "x: expired")])
+    assert "x: expired" in capsys.readouterr().err
+
+
+def test_kinds_invalid_value():
+    with pytest.raises(ValueError):
+        build_notifier("console", {"kinds": ["bogus"]})
+
+
 def test_console_no_timestamp_by_default(capsys):
     ConsoleNotifier().send([_event(Severity.CRITICAL, "x: down")])
     assert capsys.readouterr().err.strip() == "[crit] x: down"
