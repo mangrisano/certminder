@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-03
+
+### Changed
+
+- Require `certinspect >= 2.0.0` and pin its legacy JSON schema with
+  `--json --schema 1`. certinspect 2.0 changed the default `--json` output to a
+  nested, versioned document (schema 2); certminder reads the flat schema-1
+  array, so it now requests it explicitly. Without this pin, certinspect 2.0
+  output would be silently ignored — every certificate detail (expiry,
+  fingerprint, revocation, hostname, policy) reported as missing.
+
 ## [1.6.0] - 2026-07-31
 
 ### Added
@@ -251,7 +262,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/mangrisano/certminder/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/mangrisano/certminder/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mangrisano/certminder/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mangrisano/certminder/compare/v1.3.0...v1.4.0
