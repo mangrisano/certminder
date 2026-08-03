@@ -14,9 +14,16 @@ def test_build_command_includes_flags():
     cmd = build_command("certinspect", target)
     assert cmd[:2] == ["certinspect", "example.com"]
     assert "--json" in cmd
+    assert cmd[cmd.index("--schema") + 1] == "1"
     assert "--verify" in cmd
     assert "--starttls" in cmd and "smtp" in cmd
     assert "8443" in cmd
+
+
+def test_build_command_pins_legacy_json_schema():
+    # certinspect >= 2.0 defaults to schema 2; certminder must request schema 1.
+    cmd = build_command("certinspect", Target(host="example.com"))
+    assert cmd[cmd.index("--json") + 1 : cmd.index("--json") + 3] == ["--schema", "1"]
 
 
 def test_build_command_includes_not_after_max():

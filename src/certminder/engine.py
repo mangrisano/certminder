@@ -29,6 +29,10 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         bin_path,
         target.host,
         "--json",
+        # certinspect >= 2.0 defaults to a nested v2 JSON envelope; certminder
+        # reads the flat schema-1 array, so request it explicitly.
+        "--schema",
+        "1",
         "--port",
         str(target.port),
         "--timeout",
