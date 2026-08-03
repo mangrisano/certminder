@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785780327877,
+  "lastUpdate": 1785780598266,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -76,6 +76,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.000008902180552030672",
             "extra": "mean: 599.4803359024045 usec\nrounds: 908"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "b4e5f68175ae395f4cfd6c2762e6edebcd379023",
+          "message": "chore(release)!: 2.0.0\n\nThe 1.7.0 tag failed CI: certinspect 2.0 requires Python >= 3.12, so a\nmatrix job on 3.10 could not resolve the dependency. certminder must drop\nPython 3.10/3.11 to match its dependency, which is a breaking change, so\nthis is released as 2.0.0 instead of 1.7.0.\n\nBREAKING CHANGE: minimum supported Python is now 3.12.",
+          "timestamp": "2026-08-03T20:09:07+02:00",
+          "tree_id": "2307db128391e8f4e462b72ddb5c22f1c1c019aa",
+          "url": "https://github.com/mangrisano/certminder/commit/b4e5f68175ae395f4cfd6c2762e6edebcd379023"
+        },
+        "date": 1785780597367,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 215523.19633341584,
+            "unit": "iter/sec",
+            "range": "stddev: 6.070688555365418e-7",
+            "extra": "mean: 4.6398717957625 usec\nrounds: 29765"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 2115.331680459954,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000010717366990926247",
+            "extra": "mean: 472.7391024477834 usec\nrounds: 1103"
           }
         ]
       }
