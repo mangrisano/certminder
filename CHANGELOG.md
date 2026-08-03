@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.7.0] - 2026-08-03
+## [2.0.0] - 2026-08-03
+
+### Removed
+
+- **Dropped Python 3.10 and 3.11.** The minimum supported version is now
+  Python 3.12, matching certinspect 2.0 (a required dependency).
 
 ### Changed
 
@@ -262,8 +267,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v1.7.0...HEAD
-[1.7.0]: https://github.com/mangrisano/certminder/compare/v1.6.0...v1.7.0
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/mangrisano/certminder/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/mangrisano/certminder/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mangrisano/certminder/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mangrisano/certminder/compare/v1.3.0...v1.4.0

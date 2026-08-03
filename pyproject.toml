@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "certminder"
-version = "1.7.0"
+version = "2.0.0"
 description = "Continuous TLS certificate monitoring and alerting, powered by certinspect."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Michele Angrisano", email = "michele.angrisano@gmail.com" }]
@@ -17,6 +17,9 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: System Administrators",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: System :: Monitoring",
     "Topic :: Security",
 ]
