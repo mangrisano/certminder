@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-15
+
+### Added
+
+- Target/defaults option `require_revocation_check`, forwarded to
+  certinspect's `--require-revocation-check`, so certminder can alert with
+  `POLICY_VIOLATION` when OCSP/CRL cannot return a definitive `GOOD` verdict.
+
 ## [2.0.1] - 2026-08-03
 
 ### Fixed
@@ -275,7 +283,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/mangrisano/certminder/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/mangrisano/certminder/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/mangrisano/certminder/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/mangrisano/certminder/compare/v1.5.0...v1.6.0

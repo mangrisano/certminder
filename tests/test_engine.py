@@ -52,11 +52,13 @@ def test_build_command_includes_new_policy_flags():
         host="example.com",
         require_sct=True,
         require_must_staple=True,
+        require_revocation_check=True,
         min_tls_version="TLSv1.2",
     )
     cmd = build_command("certinspect", target)
     assert "--require-sct" in cmd
     assert "--require-must-staple" in cmd
+    assert "--require-revocation-check" in cmd
     assert "--min-tls-version" in cmd and "TLSv1.2" in cmd
 
 
@@ -64,6 +66,7 @@ def test_build_command_omits_new_policy_flags_by_default():
     cmd = build_command("certinspect", Target(host="example.com"))
     assert "--require-sct" not in cmd
     assert "--require-must-staple" not in cmd
+    assert "--require-revocation-check" not in cmd
     assert "--min-tls-version" not in cmd
 
 

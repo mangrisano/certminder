@@ -57,6 +57,7 @@ defaults:
   # Other opt-in policy checks (also exit code 9 -> POLICY_VIOLATION):
   #   require_sct: true            # require embedded Certificate Transparency SCTs
   #   require_must_staple: true    # require the OCSP Must-Staple extension
+  #   require_revocation_check: true # require OCSP/CRL to return GOOD
   #   min_tls_version: TLSv1.2     # fail below this negotiated TLS version
   # Or apply a whole bundle at once with a named profile (an intensity ladder,
   # not a compliance standard); explicit checks above still override it:
@@ -111,6 +112,7 @@ targets:
   - host: hardened.example.com
     require_sct: true           # must carry Certificate Transparency SCTs
     require_must_staple: true   # must carry the OCSP Must-Staple extension
+    require_revocation_check: true # OCSP/CRL must prove it is GOOD
     min_tls_version: TLSv1.2    # must negotiate at least TLS 1.2
 
   - host: strict.example.com

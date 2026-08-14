@@ -61,6 +61,7 @@ class Target:
     cab_forum: bool = False
     require_sct: bool = False
     require_must_staple: bool = False
+    require_revocation_check: bool = False
     min_tls_version: str | None = None
     profile: str | None = None
     expect: tuple[str, ...] = ()

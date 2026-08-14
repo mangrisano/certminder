@@ -89,6 +89,7 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
         "cab_forum",
         "require_sct",
         "require_must_staple",
+        "require_revocation_check",
         "min_tls_version",
         "profile",
         "expect",

@@ -108,6 +108,7 @@ def test_new_policy_target_keys(tmp_path):
           - host: example.com
             require_sct: true
             require_must_staple: true
+            require_revocation_check: true
             min_tls_version: TLSv1.2
         """,
     )
@@ -115,6 +116,7 @@ def test_new_policy_target_keys(tmp_path):
     target = config.targets[0]
     assert target.require_sct is True
     assert target.require_must_staple is True
+    assert target.require_revocation_check is True
     assert target.min_tls_version == "TLSv1.2"
 
 

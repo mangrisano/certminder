@@ -67,6 +67,8 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd.append("--require-sct")
     if target.require_must_staple:
         cmd.append("--require-must-staple")
+    if target.require_revocation_check:
+        cmd.append("--require-revocation-check")
     if target.min_tls_version:
         cmd += ["--min-tls-version", target.min_tls_version]
     # A named policy profile bundles several of the checks above; certinspect

@@ -92,6 +92,7 @@ targets:
   - host: hardened.example.com
     require_sct: true # require Certificate Transparency SCTs
     require_must_staple: true # require the OCSP Must-Staple extension
+    require_revocation_check: true # fail if OCSP/CRL cannot prove GOOD
     min_tls_version: TLSv1.2 # require at least TLS 1.2
   - host: strict.example.com
     profile: strict # one-flag hardening bundle (lenient/standard/strict)
@@ -99,10 +100,11 @@ targets:
 
 The opt-in **policy checks** (all raise `POLICY_VIOLATION`) are: `cab_forum` or
 `not_after_max` (maximum validity), `require_sct` (Certificate Transparency),
-`require_must_staple` (OCSP Must-Staple), and `min_tls_version` (minimum
-negotiated TLS version). `cab_forum` and `not_after_max` are mutually
-exclusive. A `profile` (`lenient`, `standard` or `strict`) applies a named
-bundle of these checks in one line; any explicit check above overrides it.
+`require_must_staple` (OCSP Must-Staple), `require_revocation_check` (OCSP/CRL
+must return a definitive `GOOD` verdict), and `min_tls_version` (minimum
+negotiated TLS version). `cab_forum` and `not_after_max` are mutually exclusive.
+A `profile` (`lenient`, `standard` or `strict`) applies a named bundle of these
+checks in one line; any explicit check above overrides it.
 
 Any notifier also accepts `min_severity` (`info`/`warning`/`critical`) to
 receive only events at or above that level — e.g. keep everything on the console
