@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786746952453,
+  "lastUpdate": 1787943322889,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -190,6 +190,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.000014905696281934167",
             "extra": "mean: 805.7573716935955 usec\nrounds: 756"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "77395c485ad42d6d8865b435388628766591dd44",
+          "message": "chore(deps): bump certinspect minimum to 2.1.1\n\nAlign the pinned floor in pyproject.toml and requirements.txt with the\ncurrently installed certinspect release.",
+          "timestamp": "2026-08-28T20:54:57+02:00",
+          "tree_id": "cf0994518ec48e5ca651eee615884fba1c16b3ed",
+          "url": "https://github.com/mangrisano/certminder/commit/77395c485ad42d6d8865b435388628766591dd44"
+        },
+        "date": 1787943322163,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 121922.0665383142,
+            "unit": "iter/sec",
+            "range": "stddev: 9.703426578534946e-7",
+            "extra": "mean: 8.201960714681196 usec\nrounds: 43375"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 1214.0421510934907,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014754037929444055",
+            "extra": "mean: 823.694629629867 usec\nrounds: 648"
           }
         ]
       }
