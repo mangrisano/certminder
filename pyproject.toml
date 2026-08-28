@@ -25,11 +25,11 @@ classifiers = [
 ]
 dependencies = [
     "certinspect>=2.1.1",
-    "PyYAML>=6.0",
+    "PyYAML>=6.0.3",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.5"]
+dev = ["pytest>=9.1.1", "ruff>=0.16.5"]
 
 [project.urls]
 Homepage = "https://github.com/mangrisano/certminder"
