@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787943322889,
+  "lastUpdate": 1787943800253,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -228,6 +228,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.000014754037929444055",
             "extra": "mean: 823.694629629867 usec\nrounds: 648"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "004bf56a40599a57ec8b89da17009efde93f90b9",
+          "message": "chore(deps): bump minimum dependency versions\n\nUpdate PyYAML, pytest, and ruff minimum versions to their latest\nreleases.\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>",
+          "timestamp": "2026-08-28T21:02:55+02:00",
+          "tree_id": "648e6ec8301ba020c7bedb701a387caf68b7e6e6",
+          "url": "https://github.com/mangrisano/certminder/commit/004bf56a40599a57ec8b89da17009efde93f90b9"
+        },
+        "date": 1787943799267,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 123042.4162980801,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000011714351441695863",
+            "extra": "mean: 8.127278625424749 usec\nrounds: 43912"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 1235.5202909776303,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000240935077867942",
+            "extra": "mean: 809.375618759551 usec\nrounds: 661"
           }
         ]
       }
