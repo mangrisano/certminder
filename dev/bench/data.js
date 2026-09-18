@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789720513366,
+  "lastUpdate": 1789723077773,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -342,6 +342,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.000013173520167860661",
             "extra": "mean: 803.7634479638697 usec\nrounds: 663"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "86bf7ec47b119a036b2d30defc1270c529564cb4",
+          "message": "build(docker): add portable PyPI-based deployment under deploy/docker\n\nBuilds the image from the published certminder release instead of the local\nsource, so it runs on a machine without a checkout of this repo (e.g. a Windows\nhost). Uses build context '.' and a managed named volume, avoiding the absolute\nbuild path and external volume of the source-based setup.",
+          "timestamp": "2026-09-18T11:17:35+02:00",
+          "tree_id": "5f8eb263115722cce4cef954a5c8ca0d5f80c986",
+          "url": "https://github.com/mangrisano/certminder/commit/86bf7ec47b119a036b2d30defc1270c529564cb4"
+        },
+        "date": 1789723076840,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 124340.33376186462,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000013455994888501048",
+            "extra": "mean: 8.042442622964082 usec\nrounds: 45933"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 1243.5033882524797,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00006917338784278423",
+            "extra": "mean: 804.179553869427 usec\nrounds: 659"
           }
         ]
       }
