@@ -124,6 +124,55 @@ def test_email_message_has_headers_and_body():
     assert "x: expires soon" in message.get_content()
 
 
+def test_email_body_orders_by_expiry_soonest_first():
+    n = EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e")
+
+    def expiry(name: str, days: int | None) -> Event:
+        return Event(
+            target_name=name,
+            kind=EventKind.EXPIRING,
+            severity=Severity.WARNING,
+            message=f"{name}: expiry",
+            details={"days_to_expire": days} if days is not None else {},
+        )
+
+    events = [
+        expiry("far", 40),
+        expiry("chain", None),  # no expiry figure -> keeps trailing position
+        expiry("expired", -3),
+        expiry("soon", 5),
+    ]
+    lines = n._body(events).splitlines()
+    order = [line.split(": ")[0].removeprefix("[warning] ") for line in lines]
+    assert order == ["expired", "soon", "far", "chain"]
+
+
+def test_email_order_severity_puts_worst_first():
+    n = EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", order="severity")
+    events = [
+        _event(Severity.INFO, "a: recovered"),
+        _event(Severity.CRITICAL, "b: down"),
+        _event(Severity.WARNING, "c: soon"),
+    ]
+    order = [line.split(":")[0].split("] ")[1] for line in n._body(events).splitlines()]
+    assert order == ["b", "c", "a"]
+
+
+def test_email_order_none_keeps_detection_order():
+    n = EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", order="none")
+    events = [
+        _event(Severity.WARNING, "a: soon"),
+        _event(Severity.CRITICAL, "b: down"),
+    ]
+    order = [line.split(":")[0].split("] ")[1] for line in n._body(events).splitlines()]
+    assert order == ["a", "b"]
+
+
+def test_email_rejects_invalid_order():
+    with pytest.raises(ValueError):
+        EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", order="bogus")
+
+
 def test_email_send_swallows_errors(monkeypatch):
     n = EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e")
 

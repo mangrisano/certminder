@@ -88,6 +88,8 @@ notifiers:
     from_addr: alerts@example.com
     to:
       - ops@example.com
+    # order: expiry      # body order: expiry (soonest-expiring first, default),
+    #                    #   severity (worst first), or none (as detected)
 
 # The certificates to watch.
 targets:

@@ -115,6 +115,11 @@ a selected problem clears. Targets on an internal/private CA take
 `cafile:`/`capath:` so the chain is verified against that bundle instead of the
 public trust store, which avoids false `CHAIN_UNTRUSTED` alerts.
 
+The `email` notifier also takes `order:` to control how the summary body is
+sorted: `expiry` (default — the soonest-expiring certificates first, already
+expired ones at the very top), `severity` (worst first), or `none` (in the order
+problems were detected).
+
 ### Grouping targets (shared settings)
 
 Put targets that share settings — say a whole installation behind its own

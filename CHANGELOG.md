@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `email` notifier option `order` to sort the summary body: `expiry` (default,
+  soonest-expiring certificates first), `severity` (worst first), or `none`
+  (in detection order).
+
 ## [2.1.0] - 2026-08-15
 
 ### Added
