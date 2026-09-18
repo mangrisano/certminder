@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-09-18
+
+### Changed
+
+- Require `certinspect>=2.2.0` (was `>=2.1.1`) to track the current release.
+
 ## [2.2.0] - 2026-09-18
 
 ### Added
@@ -291,7 +297,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/mangrisano/certminder/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/mangrisano/certminder/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mangrisano/certminder/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/mangrisano/certminder/compare/v2.0.0...v2.0.1
