@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-20
+
+### Added
+
+- A target may set `file: PATH` instead of `host:` to watch a local
+  certificate (PEM/DER) instead of a live endpoint (`port`, `starttls`,
+  `min_tls_version` and `require_revocation_check` don't apply to it and are
+  rejected at config load).
+- `discover:` expands a domain into every hostname Certificate Transparency
+  logs have a certificate for (via certinspect's `--discover-only`),
+  re-queried every cycle so newly issued or forgotten subdomains are picked
+  up automatically, without a static `targets:` entry.
+- `certminder check` accepts `--file PATH` as an alternative to `HOST`, for an
+  ad hoc check of a local certificate.
+
 ## [2.3.0] - 2026-09-20
 
 ### Added
@@ -315,7 +330,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/mangrisano/certminder/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mangrisano/certminder/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/mangrisano/certminder/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/mangrisano/certminder/compare/v2.1.0...v2.2.0
