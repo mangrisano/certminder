@@ -6,6 +6,10 @@
 # Config and CA are mounted read-only; state persists in a named volume. Paths
 # INSIDE certminder.yml (e.g. cafile:) are container paths under /etc/certminder,
 # so the same config works unchanged on Windows, macOS and Linux hosts.
+#
+# Secrets referenced from certminder.yml via ${VAR} (e.g. password: ${SMTP_PASSWORD})
+# go in an .env file next to this docker-compose.yml — it is gitignored and
+# optional (omit it if you have no secrets to pass).
 services:
   certminder:
     build: .
@@ -13,6 +17,9 @@ services:
     container_name: certminder
     restart: unless-stopped
     command: run -c /etc/certminder/certminder.yml
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./certminder.yml:/etc/certminder/certminder.yml:ro
       # One line per private-CA bundle your config references (remove if none):
