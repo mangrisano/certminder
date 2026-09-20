@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 from dotenv import dotenv_values
 
-from certminder.models import EventKind, Target
+from certminder.models import DiscoverSource, EventKind, Target
 
 _DURATION_RE = re.compile(r"^\s*(\d+)\s*([smhd])\s*$", re.IGNORECASE)
 _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
@@ -91,6 +91,7 @@ class Config:
 
     targets: list[Target]
     notifiers: list[NotifierConfig]
+    discover_sources: list[DiscoverSource] = field(default_factory=list)
     certinspect_bin: str = "certinspect"
     interval: int = 21600  # 6h
     state_file: Path = Path("~/.certminder/state.json")
@@ -150,6 +151,31 @@ def _validate_policy_keys(merged: dict[str, Any], raw: dict[str, Any]) -> None:
                 f"{raw!r}; use one of {sorted(_ACKNOWLEDGEABLE_PROBLEMS)}"
             )
         merged["expect"] = tuple(raw_expect)
+
+
+def _build_discover_source(
+    raw: dict[str, Any], defaults: dict[str, Any]
+) -> DiscoverSource:
+    """Build a :class:`DiscoverSource` from a ``discover:`` entry.
+
+    ``defaults`` (the config's top-level ``defaults:``) seeds the per-target
+    settings applied to every host discovered under this domain, same as for a
+    static target; any key on the entry itself overrides it.
+    """
+    if "domain" not in raw:
+        raise ConfigError(f"discover entry is missing required 'domain': {raw!r}")
+    merged = {**defaults, **raw}
+    domain = merged.pop("domain")
+    discover_timeout = merged.pop("discover_timeout", 30.0)
+    unknown = set(merged) - (_TARGET_KEYS - {"host", "file"})
+    if unknown:
+        raise ConfigError(f"unknown discover keys {sorted(unknown)} in {raw!r}")
+    _validate_policy_keys(merged, raw)
+    return DiscoverSource(
+        domain=domain,
+        discover_timeout=float(discover_timeout),
+        target_defaults=merged,
+    )
 
 
 def _load_environment(config_path: Path, secrets_file: str | None) -> dict[str, str]:
@@ -264,8 +290,15 @@ def load_config(path: str | Path) -> Config:
         }
         targets += [_build_target(t, group_defaults) for t in group_targets]
 
-    if not targets:
-        raise ConfigError("at least one target is required")
+    raw_discover = data.get("discover") or []
+    discover_sources = []
+    for index, entry in enumerate(raw_discover, start=1):
+        if not isinstance(entry, dict):
+            raise ConfigError(f"discover entry #{index} must be a mapping")
+        discover_sources.append(_build_discover_source(entry, defaults))
+
+    if not targets and not discover_sources:
+        raise ConfigError("at least one target or discover entry is required")
 
     notifiers = []
     for entry in data.get("notifiers") or [{"type": "console"}]:
@@ -277,6 +310,7 @@ def load_config(path: str | Path) -> Config:
     return Config(
         targets=targets,
         notifiers=notifiers,
+        discover_sources=discover_sources,
         certinspect_bin=data.get("certinspect_bin", "certinspect"),
         interval=parse_duration(data.get("interval", "6h")),
         state_file=Path(

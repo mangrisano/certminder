@@ -90,6 +90,21 @@ class Target:
         return f"{base} ({self.label})" if self.label else base
 
 
+@dataclass(frozen=True)
+class DiscoverSource:
+    """A domain to expand into host targets via certinspect's CT-log discovery.
+
+    ``target_defaults`` holds the per-target keys (e.g. ``verify``, ``profile``,
+    ``cafile``, ``expect``) applied to every host discovered under ``domain`` —
+    the same schema as a target, minus ``host``/``file`` (see
+    ``config._build_discover_source``).
+    """
+
+    domain: str
+    discover_timeout: float = 30.0
+    target_defaults: dict[str, Any] = field(default_factory=dict)
+
+
 @dataclass
 class CheckResult:
     """The outcome of inspecting one target in a single cycle."""

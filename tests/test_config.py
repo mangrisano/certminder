@@ -707,3 +707,102 @@ def test_file_target_ignores_inherited_host_only_default(tmp_path):
     config = load_config(path)
     by_name = {t.name: t for t in config.targets}
     assert by_name["/etc/certs/leaf.pem"].file == "/etc/certs/leaf.pem"
+
+
+def test_discover_source_parses(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        discover:
+          - domain: example.com
+            discover_timeout: 10
+            verify: false
+        targets:
+          - host: static.example.com
+        """,
+    )
+    config = load_config(path)
+    assert len(config.discover_sources) == 1
+    source = config.discover_sources[0]
+    assert source.domain == "example.com"
+    assert source.discover_timeout == 10.0
+    assert source.target_defaults == {"verify": False}
+
+
+def test_discover_source_inherits_global_defaults(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        defaults:
+          days: 45
+        discover:
+          - domain: example.com
+        targets:
+          - host: static.example.com
+        """,
+    )
+    config = load_config(path)
+    assert config.discover_sources[0].target_defaults["days"] == 45
+
+
+def test_discover_without_targets_is_valid(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        discover:
+          - domain: example.com
+        """,
+    )
+    config = load_config(path)
+    assert config.targets == []
+    assert len(config.discover_sources) == 1
+
+
+def test_discover_missing_domain_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        discover:
+          - discover_timeout: 10
+        targets:
+          - host: static.example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_discover_unknown_key_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        discover:
+          - domain: example.com
+            bogus: 1
+        targets:
+          - host: static.example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_discover_rejects_host_or_file_key(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        discover:
+          - domain: example.com
+            host: not-allowed.example.com
+        targets:
+          - host: static.example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_no_targets_and_no_discover_is_error(tmp_path):
+    path = _write(tmp_path, "interval: 1h\n")
+    with pytest.raises(ConfigError):
+        load_config(path)

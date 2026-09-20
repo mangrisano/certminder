@@ -137,6 +137,29 @@ A file target has no live handshake, so `port`, `starttls`,
 rejected at config load; every other setting (`verify`, `cafile`/`capath`,
 `days`, the policy checks, `expect`, ...) works exactly as it does for a host.
 
+### Discovering targets automatically (`discover`)
+
+Instead of (or alongside) a static `targets:` list, `discover:` expands a
+domain into every hostname Certificate Transparency logs have a certificate
+for (via certinspect's `--discover-only`), so a forgotten subdomain or shadow
+certificate is monitored without anyone adding it to the config by hand:
+
+```yaml
+discover:
+  - domain: example.com
+    discover_timeout: 30 # seconds for the crt.sh query (default: 30)
+    verify: true # any target setting applies to every discovered host
+  - domain: internal.example.lan
+    cafile: /etc/ssl/internal-ca.pem
+```
+
+Discovery re-runs at the start of every cycle (not just once at startup), so a
+newly issued certificate for a new subdomain is picked up on the next cycle
+automatically — that's the point: it catches hosts nobody remembered to add.
+A discovered host that coincidentally matches a static target is inspected
+once, not twice. A domain whose crt.sh query fails (timeout, rate limit) is
+skipped with a warning; the rest of the cycle still runs.
+
 ### Using environment variables in the file
 
 Any string value anywhere in the file — a notifier secret, a target `host`,

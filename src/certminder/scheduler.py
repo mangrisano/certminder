@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from certminder.config import Config
+from certminder.discovery import DiscoveryError, discover_hostnames
 from certminder.engine import check_target
 from certminder.evaluator import evaluate
 from certminder.metrics import write_prometheus
-from certminder.models import CheckResult, Event
+from certminder.models import CheckResult, DiscoverSource, Event, Target
 from certminder.notifiers import Notifier, build_notifier
 from certminder.state import StateStore, TargetState
 
@@ -58,6 +60,62 @@ def build_notifiers(config: Config) -> list[Notifier]:
     return [build_notifier(n.type, n.options) for n in config.notifiers]
 
 
+def _resolve_one_source(
+    source: DiscoverSource, bin_path: str
+) -> tuple[DiscoverSource, list[str], str | None]:
+    try:
+        return (
+            source,
+            discover_hostnames(source.domain, source.discover_timeout, bin_path),
+            None,
+        )
+    except DiscoveryError as err:
+        return source, [], str(err)
+
+
+def resolve_discovered_targets(config: Config) -> list[Target]:
+    """Expand ``config.discover_sources`` into host targets for this cycle.
+
+    Queried fresh every cycle (not cached from config-load time) so a domain's
+    newly-issued or expired certificates are picked up automatically. A source
+    whose query fails is skipped with a warning to stderr rather than aborting
+    the whole cycle — the same soft-fail approach as an unreachable target.
+    """
+    if not config.discover_sources:
+        return []
+    workers = max(1, config.concurrency)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        outcomes = list(
+            pool.map(
+                lambda s: _resolve_one_source(s, config.certinspect_bin),
+                config.discover_sources,
+            )
+        )
+    targets: list[Target] = []
+    for source, hostnames, err in outcomes:
+        if err is not None:
+            print(f"certminder: {err}", file=sys.stderr)
+            continue
+        targets += [Target(host=host, **source.target_defaults) for host in hostnames]
+    return targets
+
+
+def _all_targets(config: Config) -> list[Target]:
+    """Static targets plus this cycle's discovered ones, deduped by name.
+
+    A discovered host that coincidentally matches a static target's name (same
+    host:port) is skipped, so it is inspected once and doesn't double-count
+    towards events or metrics.
+    """
+    targets = list(config.targets)
+    known_names = {t.name for t in targets}
+    for target in resolve_discovered_targets(config):
+        if target.name not in known_names:
+            targets.append(target)
+            known_names.add(target.name)
+    return targets
+
+
 def run_once(
     config: Config,
     notifiers: list[Notifier] | None = None,
@@ -73,12 +131,13 @@ def run_once(
     """
     notifiers = notifiers if notifiers is not None else build_notifiers(config)
     store = StateStore(config.state_file)
+    targets = _all_targets(config)
 
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         results = list(
             pool.map(
                 lambda t: check_target(t, config.certinspect_bin),
-                config.targets,
+                targets,
             )
         )
 

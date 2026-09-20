@@ -152,3 +152,15 @@ groups:
       - host: trustapp.site-a.lan
       - host: webauth.site-a.lan
         cafile: /etc/certminder/other-ca.pem   # per-target override wins
+
+# Expand a domain into every hostname Certificate Transparency logs have a
+# certificate for (certinspect --discover-only), so a forgotten subdomain
+# doesn't go unmonitored. Re-queried every cycle; any target setting applies
+# to every host discovered under that domain. Can be used with or without a
+# static 'targets:'/'groups:' list.
+discover:
+  - domain: example.com
+    discover_timeout: 30   # seconds for the crt.sh query (default: 30)
+    verify: true
+  - domain: internal.example.lan
+    cafile: /etc/certminder/internal-ca.pem
