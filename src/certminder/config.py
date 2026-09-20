@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import dotenv_values
 
 from certminder.models import EventKind, Target
 
@@ -122,6 +124,75 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
     return Target(**merged)
 
 
+def _load_environment(config_path: Path, secrets_file: str | None) -> dict[str, str]:
+    """Merge a secrets ``.env`` file with the real environment (env wins).
+
+    Parsing is delegated to ``python-dotenv``'s ``dotenv_values``, which reads
+    (without touching the real environment) rather than mutates ``os.environ``,
+    so this stays a pure merge: a variable already set in the real environment
+    overrides the file, so an ``export`` wins for a single run. Without
+    ``secrets_file`` a ``.env`` next to the config is read if present; an
+    explicit ``secrets_file`` (a relative path resolves against the config's
+    directory) must exist.
+    """
+    if secrets_file:
+        env_path = Path(secrets_file).expanduser()
+        if not env_path.is_absolute():
+            env_path = config_path.parent / env_path
+        if not env_path.is_file():
+            raise ConfigError(f"secrets_file not found: {env_path}")
+    else:
+        env_path = config_path.parent / ".env"
+    file_vars = dotenv_values(env_path) if env_path.is_file() else {}
+    for key, value in file_vars.items():
+        if value is None:
+            raise ConfigError(f"{env_path}: {key!r} has no value (expected KEY=VALUE)")
+    return {**file_vars, **os.environ}
+
+
+_VAR_RE = re.compile(
+    r"\$\$|\$\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|\$(?P<bare>[A-Za-z_][A-Za-z0-9_]*)"
+)
+
+
+def _interpolate(value: str, env: dict[str, str]) -> str:
+    """Substitute Docker Compose-style ``${VAR}``/``$VAR`` in a string.
+
+    ``$$`` is a literal dollar sign. Every referenced variable must be set (in
+    the merged environment: the real environment, then a ``.env`` file) — there
+    is no default-value fallback, so a missing secret fails loudly.
+    """
+
+    def repl(match: re.Match[str]) -> str:
+        if match.group(0) == "$$":
+            return "$"
+        name = match.group("braced") or match.group("bare")
+        if name not in env:
+            raise ConfigError(
+                f"environment variable {name!r} (referenced in {value!r}) is not set"
+            )
+        return env[name]
+
+    return _VAR_RE.sub(repl, value)
+
+
+def _interpolate_value(value: Any, env: dict[str, str]) -> Any:
+    """Recursively substitute ``${VAR}``/``$VAR`` in every string, anywhere.
+
+    Applies to the whole parsed YAML, not just notifier secrets: a target
+    ``host``, a ``cafile`` path, ``state_file``, an ``expect`` entry, etc. can
+    all reference ``${VAR}``. Non-string values (int, bool, None, ...) pass
+    through unchanged.
+    """
+    if isinstance(value, str):
+        return _interpolate(value, env)
+    if isinstance(value, dict):
+        return {k: _interpolate_value(v, env) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_interpolate_value(item, env) for item in value]
+    return value
+
+
 def load_config(path: str | Path) -> Config:
     """Read, parse and validate the configuration at ``path``."""
     path = Path(path).expanduser()
@@ -135,6 +206,17 @@ def load_config(path: str | Path) -> Config:
 
     if not isinstance(data, dict):
         raise ConfigError("top-level configuration must be a mapping")
+
+    # secrets_file itself is resolved against the real environment only: the
+    # .env file it points at doesn't exist yet to resolve it against.
+    raw_secrets_file = data.get("secrets_file")
+    secrets_file = (
+        _interpolate(raw_secrets_file, os.environ)
+        if isinstance(raw_secrets_file, str)
+        else raw_secrets_file
+    )
+    env = _load_environment(path, secrets_file)
+    data = _interpolate_value(data, env)
 
     raw_targets = data.get("targets") or []
     defaults = data.get("defaults") or {}

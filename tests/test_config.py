@@ -336,3 +336,286 @@ def test_network_robustness_keys_accepted(tmp_path):
     assert t.retries == 2
     assert t.connect_timeout == 3
     assert t.read_timeout == 8
+
+
+def test_braced_var_reads_from_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("SMTP_PASS", "s3cret")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                password: ${SMTP_PASS}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "s3cret"
+
+
+def test_bare_var_reads_from_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("SMTP_PASS", "s3cret")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                password: $SMTP_PASS
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "s3cret"
+
+
+def test_missing_variable_is_error(tmp_path, monkeypatch):
+    monkeypatch.delenv("NO_SUCH_SECRET", raising=False)
+    path = _write(
+        tmp_path,
+        """
+        notifiers:
+          - type: slack
+            webhook_url: ${NO_SUCH_SECRET}
+        targets:
+          - host: example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_var_resolves_inside_nested_headers(tmp_path, monkeypatch):
+    monkeypatch.setenv("WEBHOOK_TOKEN", "abc123")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: webhook
+                url: https://example.com/hook
+                headers:
+                  Authorization: "Bearer ${WEBHOOK_TOKEN}"
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    headers = cfg.notifiers[0].options["headers"]
+    assert headers["Authorization"] == "Bearer abc123"
+
+
+def test_var_resolves_inside_list_items(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPS_EMAIL", "ops@example.com")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                host: smtp.example.com
+                from_addr: alerts@example.com
+                to: ["${OPS_EMAIL}"]
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["to"] == ["ops@example.com"]
+
+
+def test_double_dollar_is_literal_dollar(tmp_path, monkeypatch):
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                password: "pa$$word"
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "pa$word"
+
+
+def test_var_resolves_in_target_fields(tmp_path, monkeypatch):
+    monkeypatch.setenv("TARGET_HOST", "internal.example.com")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            targets:
+              - host: ${TARGET_HOST}
+                label: prod-${TARGET_HOST}
+            """,
+        )
+    )
+    assert cfg.targets[0].host == "internal.example.com"
+    assert cfg.targets[0].label == "prod-internal.example.com"
+
+
+def test_var_resolves_in_top_level_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("STATE_DIR", str(tmp_path / "state"))
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            state_file: ${STATE_DIR}/state.json
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.state_file == (tmp_path / "state" / "state.json")
+
+
+def test_secrets_file_path_resolves_against_real_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("SECRETS_NAME", "secrets.env")
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+    (tmp_path / "secrets.env").write_text("SMTP_PASSWORD=explicit-secret\n")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            secrets_file: ${SECRETS_NAME}
+            notifiers:
+              - type: email
+                password: ${SMTP_PASSWORD}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "explicit-secret"
+
+
+def test_env_file_next_to_config_supplies_variable(tmp_path, monkeypatch):
+    monkeypatch.delenv("SLACK_WEBHOOK_URL", raising=False)
+    (tmp_path / ".env").write_text(
+        "SLACK_WEBHOOK_URL=https://hooks.example/from-file\n"
+    )
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: slack
+                webhook_url: ${SLACK_WEBHOOK_URL}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["webhook_url"] == "https://hooks.example/from-file"
+
+
+def test_real_environment_overrides_env_file(tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text(
+        "SLACK_WEBHOOK_URL=https://hooks.example/from-file\n"
+    )
+    monkeypatch.setenv("SLACK_WEBHOOK_URL", "https://hooks.example/from-environment")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: slack
+                webhook_url: ${SLACK_WEBHOOK_URL}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert (
+        cfg.notifiers[0].options["webhook_url"]
+        == "https://hooks.example/from-environment"
+    )
+
+
+def test_env_file_preserves_case_and_strips_quotes(tmp_path, monkeypatch):
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+    (tmp_path / ".env").write_text('SMTP_PASSWORD="pa%word"\n')
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                password: ${SMTP_PASSWORD}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "pa%word"
+
+
+def test_env_file_skips_blank_lines_and_comments(tmp_path, monkeypatch):
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+    (tmp_path / ".env").write_text("# a comment\n\nSMTP_PASSWORD=s3cret\n")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            notifiers:
+              - type: email
+                password: ${SMTP_PASSWORD}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "s3cret"
+
+
+def test_explicit_secrets_file_relative_to_config(tmp_path, monkeypatch):
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+    (tmp_path / "secrets.env").write_text("SMTP_PASSWORD=explicit-secret\n")
+    cfg = load_config(
+        _write(
+            tmp_path,
+            """
+            secrets_file: secrets.env
+            notifiers:
+              - type: email
+                password: ${SMTP_PASSWORD}
+            targets:
+              - host: example.com
+            """,
+        )
+    )
+    assert cfg.notifiers[0].options["password"] == "explicit-secret"
+
+
+def test_missing_explicit_secrets_file_is_error(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        secrets_file: nope.env
+        targets:
+          - host: example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_env_file_without_equals_is_error(tmp_path):
+    (tmp_path / ".env").write_text("oops-no-equals\n")
+    path = _write(
+        tmp_path,
+        """
+        notifiers:
+          - type: email
+            password: ${SMTP_PASSWORD}
+        targets:
+          - host: example.com
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)

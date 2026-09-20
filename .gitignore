@@ -12,5 +12,9 @@ dist/
 state.json
 *.state.json
 
+# local secrets loaded via secrets_file / auto-loaded .env
+.env
+*.env
+
 # local-only Copilot instructions / GitHub workspace files
 .github/copilot-instructions.md

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Any string value anywhere in the config — a notifier secret, a target
+  `host`, `state_file`, `cafile`, `secrets_file` itself, etc. — can reference
+  an environment variable with Docker Compose-style `${VAR}`/`$VAR` syntax
+  (`$$` for a literal `$`). The value is resolved following an `env > file`
+  order: the real environment first, then a `.env` file (parsed with
+  `python-dotenv`) next to the config, or one named by a top-level
+  `secrets_file:`. There is no default-value fallback: a variable that is not
+  set is a configuration error.
+
+### Changed
+
+- `python-dotenv` is now a runtime dependency, used to parse the `.env` file
+  above.
+
 ## [2.2.1] - 2026-09-18
 
 ### Changed

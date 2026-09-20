@@ -64,11 +64,18 @@ defaults:
   #   profile: standard            # one of: lenient, standard, strict
 
 # Alert sinks. Every notifier receives every event in a cycle.
+#
+# Keep secrets out of this file: any string value anywhere in this config can
+# reference an environment variable with ${VAR} or $VAR (Docker Compose
+# syntax; $$ is a literal $). The value is resolved env > file: the real
+# environment first, then a .env file (KEY=VALUE lines) — a .env next to this
+# config is read automatically, or set a top-level `secrets_file:` to point
+# at another.
 notifiers:
   - type: console
     # timestamp: true   # prefix each line with the local date and time
   - type: slack
-    webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    webhook_url: ${SLACK_WEBHOOK_URL}   # read from the environment or .env
     # min_severity: critical   # this sink only gets events at/above this level
     # kinds: [expired]         # this sink only gets these event types
     #   (expiring, critical, expired, not_yet_valid, revoked, chain_untrusted,
@@ -76,15 +83,15 @@ notifiers:
     #    fingerprint_changed, unreachable, recovered)
   - type: webhook
     url: "https://example.com/certminder-hook"
-    # optional extra headers, e.g. an auth token
+    # optional extra headers, e.g. an auth token from the environment
     headers:
-      Authorization: "Bearer CHANGE_ME"
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
   - type: email
     host: smtp.example.com
     port: 587            # 587 STARTTLS (use_tls) or 465 implicit TLS (use_ssl)
     use_tls: true
     username: alerts@example.com
-    password: CHANGE_ME
+    password: ${SMTP_PASSWORD}   # value comes from the environment or .env
     from_addr: alerts@example.com
     to:
       - ops@example.com

@@ -120,6 +120,52 @@ sorted: `expiry` (default — the soonest-expiring certificates first, already
 expired ones at the very top), `severity` (worst first), or `none` (in the order
 problems were detected).
 
+### Using environment variables in the file
+
+Any string value anywhere in the file — a notifier secret, a target `host`,
+`state_file`, `cafile`, `secrets_file` itself, etc. — can reference an
+environment variable with Docker Compose-style `${VAR}` or `$VAR` syntax.
+`$$` is a literal dollar sign. There is no default-value fallback: a variable
+that isn't set is a hard error, so a missing value fails loudly instead of
+being sent empty or interpolated as a literal `${VAR}` string.
+
+The value is resolved `env > file`: the real environment first, then a `.env`
+file next to the config (parsed with
+[`python-dotenv`](https://pypi.org/project/python-dotenv/), so comments,
+quoting and `export` prefixes all work as expected). Point at a different
+file with a top-level `secrets_file:` (a relative path resolves against the
+config's directory, and is itself resolved against the real environment
+only, since the `.env` file it names doesn't exist yet to resolve it
+against). Because the real environment wins, an `export`-ed shell variable
+overrides the file for a single run.
+
+```yaml
+# certminder.yml
+secrets_file: secrets.env # optional; a .env next to the config is auto-loaded
+targets:
+  - host: ${TARGET_HOST}
+notifiers:
+  - type: slack
+    webhook_url: ${SLACK_WEBHOOK_URL}
+  - type: webhook
+    url: https://example.com/hook
+    headers:
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+  - type: email
+    host: smtp.example.com
+    from_addr: alerts@example.com
+    to: [ops@example.com]
+    password: ${SMTP_PASSWORD}
+```
+
+```dotenv
+# .env — keep it out of version control
+TARGET_HOST=internal.example.com
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxxx
+WEBHOOK_TOKEN=abc123
+SMTP_PASSWORD=SuperSecret
+```
+
 ### Grouping targets (shared settings)
 
 Put targets that share settings — say a whole installation behind its own
