@@ -97,6 +97,36 @@ def test_build_command_omits_network_robustness_flags_by_default():
     assert "--read-timeout" not in cmd
 
 
+def test_build_command_file_target_uses_file_flag():
+    cmd = build_command("certinspect", Target(file="/etc/certs/leaf.pem"))
+    assert cmd[:2] == ["certinspect", "--file"]
+    assert "/etc/certs/leaf.pem" in cmd
+    assert "example.com" not in cmd
+
+
+def test_build_command_file_target_omits_host_only_flags():
+    # Config validation rejects this combination on a real config file; built
+    # directly here to prove the builder itself drops the host-only flags
+    # rather than handing certinspect a --file it would reject with exit 2.
+    target = Target(
+        file="/etc/certs/leaf.pem",
+        verify=True,
+        cafile="/etc/ssl/internal-ca.pem",
+        port=8443,
+        starttls="smtp",
+        min_tls_version="TLSv1.2",
+        require_revocation_check=True,
+    )
+    cmd = build_command("certinspect", target)
+    assert "--port" not in cmd
+    assert "--starttls" not in cmd
+    assert "--min-tls-version" not in cmd
+    assert "--require-revocation-check" not in cmd
+    # Still-applicable flags are kept.
+    assert "--verify" in cmd
+    assert "--cafile" in cmd and "/etc/ssl/internal-ca.pem" in cmd
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(
@@ -206,3 +236,11 @@ def test_missing_binary(monkeypatch):
     result = check_target(Target(host="example.com"), bin_path="nope")
     assert result.exit_code == 127
     assert "not found" in (result.error or "")
+
+
+def test_check_file_target(monkeypatch):
+    info = [{"days_to_expire": 90, "fingerprint_sha256": "AA:BB"}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 0))
+    result = check_target(Target(file="/etc/certs/leaf.pem"))
+    assert result.status == "VALID"
+    assert result.target.name == "/etc/certs/leaf.pem"

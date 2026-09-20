@@ -27,6 +27,38 @@ _ACKNOWLEDGEABLE_PROBLEMS = {k.value for k in EventKind} - {
     EventKind.RECOVERED.value,
 }
 
+# Keys a target (or a discover source's shared defaults) may set. 'host' and
+# 'file' identify what is being watched; a target needs exactly one, a
+# discover source needs neither (its hosts come from CT logs).
+_TARGET_KEYS = {
+    "host",
+    "file",
+    "port",
+    "verify",
+    "days",
+    "critical_days",
+    "timeout",
+    "connect_timeout",
+    "read_timeout",
+    "retries",
+    "starttls",
+    "cafile",
+    "capath",
+    "not_after_max",
+    "cab_forum",
+    "require_sct",
+    "require_must_staple",
+    "require_revocation_check",
+    "min_tls_version",
+    "profile",
+    "expect",
+    "label",
+}
+
+# Flags that need a live TLS handshake; meaningless (and rejected by
+# certinspect itself) for a 'file' target.
+_HOST_ONLY_KEYS = {"port", "starttls", "min_tls_version", "require_revocation_check"}
+
 
 class ConfigError(ValueError):
     """Raised when the configuration file is missing or malformed."""
@@ -71,35 +103,32 @@ class Config:
 
 
 def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
-    if "host" not in raw:
-        raise ConfigError(f"target is missing required 'host': {raw!r}")
     merged = {**defaults, **raw}
-    allowed = {
-        "host",
-        "port",
-        "verify",
-        "days",
-        "critical_days",
-        "timeout",
-        "connect_timeout",
-        "read_timeout",
-        "retries",
-        "starttls",
-        "cafile",
-        "capath",
-        "not_after_max",
-        "cab_forum",
-        "require_sct",
-        "require_must_staple",
-        "require_revocation_check",
-        "min_tls_version",
-        "profile",
-        "expect",
-        "label",
-    }
-    unknown = set(merged) - allowed
+    if ("host" in merged) == ("file" in merged):
+        raise ConfigError(f"target needs exactly one of 'host' or 'file': {raw!r}")
+    unknown = set(merged) - _TARGET_KEYS
     if unknown:
         raise ConfigError(f"unknown target keys {sorted(unknown)} in {raw!r}")
+    if "file" in merged:
+        # Checked against the target's own entry, not the merged result: a
+        # global 'defaults: {port: 443}' is meant for host targets and simply
+        # doesn't apply here, it isn't a conflict worth failing on.
+        host_only = _HOST_ONLY_KEYS & set(raw)
+        if host_only:
+            raise ConfigError(
+                f"{sorted(host_only)} apply to 'host' targets, not 'file', in {raw!r}"
+            )
+    _validate_policy_keys(merged, raw)
+    return Target(**merged)
+
+
+def _validate_policy_keys(merged: dict[str, Any], raw: dict[str, Any]) -> None:
+    """Validate the policy/expect keys shared by targets and discover sources.
+
+    Mutates ``merged["expect"]`` into a tuple in place, matching what
+    :class:`~certminder.models.Target` (and :class:`DiscoverSource`, which
+    stores it back into ``target_defaults``) expect.
+    """
     if merged.get("cab_forum") and merged.get("not_after_max") is not None:
         raise ConfigError(
             f"'cab_forum' and 'not_after_max' are mutually exclusive in {raw!r}"
@@ -121,7 +150,6 @@ def _build_target(raw: dict[str, Any], defaults: dict[str, Any]) -> Target:
                 f"{raw!r}; use one of {sorted(_ACKNOWLEDGEABLE_PROBLEMS)}"
             )
         merged["expect"] = tuple(raw_expect)
-    return Target(**merged)
 
 
 def _load_environment(config_path: Path, secrets_file: str | None) -> dict[str, str]:

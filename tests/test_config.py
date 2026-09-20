@@ -619,3 +619,91 @@ def test_env_file_without_equals_is_error(tmp_path):
     )
     with pytest.raises(ConfigError):
         load_config(path)
+
+
+def test_file_target_key(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - file: /etc/certs/leaf.pem
+            label: Vendored leaf
+        """,
+    )
+    config = load_config(path)
+    assert config.targets[0].file == "/etc/certs/leaf.pem"
+    assert config.targets[0].host is None
+    assert config.targets[0].name == "/etc/certs/leaf.pem (Vendored leaf)"
+
+
+def test_target_needs_host_or_file(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - label: neither host nor file
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_target_rejects_host_and_file_together(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+            file: /etc/certs/leaf.pem
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [("port", 8443), ("starttls", "smtp"), ("min_tls_version", "TLSv1.2")],
+)
+def test_file_target_rejects_host_only_keys(tmp_path, key, value):
+    path = _write(
+        tmp_path,
+        f"""
+        targets:
+          - file: /etc/certs/leaf.pem
+            {key}: {value!r}
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_file_target_rejects_require_revocation_check(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - file: /etc/certs/leaf.pem
+            require_revocation_check: true
+        """,
+    )
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_file_target_ignores_inherited_host_only_default(tmp_path):
+    # A global 'defaults: {port: ...}' is meant for host targets; a file
+    # target inheriting it is not a conflict (regression: it used to be).
+    path = _write(
+        tmp_path,
+        """
+        defaults:
+          port: 443
+        targets:
+          - host: example.com
+          - file: /etc/certs/leaf.pem
+        """,
+    )
+    config = load_config(path)
+    by_name = {t.name: t for t in config.targets}
+    assert by_name["/etc/certs/leaf.pem"].file == "/etc/certs/leaf.pem"

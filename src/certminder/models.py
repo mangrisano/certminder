@@ -43,9 +43,16 @@ class EventKind(str, Enum):
 
 @dataclass(frozen=True)
 class Target:
-    """A single certificate endpoint to watch."""
+    """A single certificate endpoint to watch: either a host or a local file.
 
-    host: str
+    Exactly one of ``host`` or ``file`` must be set. A file target has no live
+    handshake, so the host-only fields (``port``, ``starttls``,
+    ``min_tls_version``, ``require_revocation_check``) do not apply to it;
+    config validation rejects setting them together (see ``config.py``).
+    """
+
+    host: str | None = None
+    file: str | None = None
     port: int = 443
     verify: bool = True
     days: int = 30
@@ -67,10 +74,19 @@ class Target:
     expect: tuple[str, ...] = ()
     label: str | None = None
 
+    def __post_init__(self) -> None:
+        if (self.host is None) == (self.file is None):
+            raise ValueError("a target needs exactly one of 'host' or 'file'")
+
+    @property
+    def display_host(self) -> str:
+        """The host or file path this target identifies, for labels/metrics."""
+        return self.host if self.host is not None else self.file
+
     @property
     def name(self) -> str:
         """A stable, human-readable identifier used as the state key."""
-        base = f"{self.host}:{self.port}"
+        base = f"{self.host}:{self.port}" if self.host is not None else self.file
         return f"{base} ({self.label})" if self.label else base
 
 

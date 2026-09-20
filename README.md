@@ -120,6 +120,23 @@ sorted: `expiry` (default — the soonest-expiring certificates first, already
 expired ones at the very top), `severity` (worst first), or `none` (in the order
 problems were detected).
 
+### Watching a local certificate file
+
+A target may set `file:` instead of `host:` to watch a local certificate (PEM
+or DER) rather than a live endpoint — e.g. a certificate rotated onto disk by
+certbot/ACME before it is deployed, or one on a shared filesystem:
+
+```yaml
+targets:
+  - file: /etc/ssl/certs/vendored-leaf.pem
+    label: "Vendored leaf"
+```
+
+A file target has no live handshake, so `port`, `starttls`,
+`min_tls_version` and `require_revocation_check` don't apply to it and are
+rejected at config load; every other setting (`verify`, `cafile`/`capath`,
+`days`, the policy checks, `expect`, ...) works exactly as it does for a host.
+
 ### Using environment variables in the file
 
 Any string value anywhere in the file — a notifier secret, a target `host`,

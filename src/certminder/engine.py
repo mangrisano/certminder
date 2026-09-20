@@ -24,17 +24,26 @@ _ANALYSED_CODES = {0, 3, 4, 5, 6, 7, 9}
 
 
 def build_command(bin_path: str, target: Target) -> list[str]:
-    """Assemble the certinspect command line for ``target``."""
-    cmd = [
-        bin_path,
-        target.host,
+    """Assemble the certinspect command line for ``target``.
+
+    A file target (``target.file`` set) has no live handshake, so the
+    host-only flags (``--port``, ``--starttls``, ``--min-tls-version``,
+    ``--require-revocation-check``) are omitted even if set on the target —
+    config validation is expected to reject that combination earlier, but the
+    builder stays defensive since certinspect itself would exit 2 on it.
+    """
+    is_file = target.file is not None
+    cmd = [bin_path]
+    if is_file:
+        cmd += ["--file", target.file]
+    else:
+        cmd += [target.host, "--port", str(target.port)]
+    cmd += [
         "--json",
         # certinspect >= 2.0 defaults to a nested v2 JSON envelope; certminder
         # reads the flat schema-1 array, so request it explicitly.
         "--schema",
         "1",
-        "--port",
-        str(target.port),
         "--timeout",
         str(target.timeout),
         "--days",
@@ -50,7 +59,7 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd += ["--read-timeout", str(target.read_timeout)]
     if target.retries:
         cmd += ["--retries", str(target.retries)]
-    if target.starttls:
+    if not is_file and target.starttls:
         cmd += ["--starttls", target.starttls]
     if target.cafile:
         cmd += ["--cafile", target.cafile]
@@ -67,9 +76,9 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         cmd.append("--require-sct")
     if target.require_must_staple:
         cmd.append("--require-must-staple")
-    if target.require_revocation_check:
+    if not is_file and target.require_revocation_check:
         cmd.append("--require-revocation-check")
-    if target.min_tls_version:
+    if not is_file and target.min_tls_version:
         cmd += ["--min-tls-version", target.min_tls_version]
     # A named policy profile bundles several of the checks above; certinspect
     # lets any explicit flag override it, so passing both is safe.

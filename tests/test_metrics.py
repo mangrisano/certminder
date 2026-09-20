@@ -78,6 +78,14 @@ def test_render_escapes_label_quotes():
     assert '\\"quote\\"' in text
 
 
+def test_render_file_target_does_not_crash():
+    target = Target(file="/etc/certs/leaf.pem")
+    text = render([make_result(target, "VALID", days_to_expire=10)], now=1000.0)
+    assert 'host="/etc/certs/leaf.pem"' in text
+    assert 'port=""' in text
+    assert 'target="/etc/certs/leaf.pem"' in text
+
+
 def test_write_prometheus_atomic(tmp_path):
     path = tmp_path / "sub" / "certminder.prom"
     write_prometheus([_result("VALID", days_to_expire=5)], path, now=1000.0)

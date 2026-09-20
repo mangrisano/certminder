@@ -135,6 +135,12 @@ targets:
     # chain_expiring, unreachable.
     expect: [chain_untrusted]   # internal/private CA, expected
 
+  # 'file:' watches a local certificate (PEM/DER) instead of a live host, e.g.
+  # one rotated onto disk before deployment. port/starttls/min_tls_version/
+  # require_revocation_check don't apply and are rejected here.
+  - file: /etc/ssl/certs/vendored-leaf.pem
+    label: "Vendored leaf"
+
 # Groups apply shared settings to a set of targets, so a whole installation on
 # its own internal CA is configured once instead of per host. Precedence:
 # defaults < group < per-target. Top-level 'targets:' and 'groups:' can coexist.

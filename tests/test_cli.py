@@ -1,10 +1,11 @@
-"""Tests for the CLI report command."""
+"""Tests for the CLI report and check commands."""
 
 from __future__ import annotations
 
 import json
+import subprocess
 
-from certminder.cli import _cmd_report
+from certminder.cli import _cmd_report, main
 from certminder.config import Config, NotifierConfig
 from certminder.models import Target
 from certminder.state import StateStore, TargetState
@@ -65,3 +66,38 @@ def test_report_json(tmp_path, capsys):
     assert data["total_targets"] == 1
     assert data["with_problems"] == 1
     assert data["problems"][0]["problems"] == ["expired"]
+
+
+def _fake_run(stdout, returncode):
+    def runner(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args, returncode=returncode, stdout=stdout, stderr=""
+        )
+
+    return runner
+
+
+def test_check_host(monkeypatch, capsys):
+    info = [{"days_to_expire": 42, "fingerprint_sha256": "AA:BB"}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 0))
+    code = main(["check", "example.com"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "example.com:443: ok (42 day(s) left)" in out
+
+
+def test_check_file(monkeypatch, capsys):
+    info = [{"days_to_expire": 10, "fingerprint_sha256": "AA:BB"}]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 0))
+    code = main(["check", "--file", "/etc/certs/leaf.pem"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "/etc/certs/leaf.pem: ok (10 day(s) left)" in out
+
+
+def test_check_requires_exactly_one_of_host_or_file(capsys):
+    assert main(["check"]) == 2
+    assert "exactly one" in capsys.readouterr().err
+
+    assert main(["check", "example.com", "--file", "/etc/certs/leaf.pem"]) == 2
+    assert "exactly one" in capsys.readouterr().err

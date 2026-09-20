@@ -29,8 +29,8 @@ class CycleReport:
             "targets": [
                 {
                     "target": r.target.name,
-                    "host": r.target.host,
-                    "port": r.target.port,
+                    "host": r.target.display_host,
+                    "port": r.target.port if r.target.host is not None else None,
                     "status": r.status,
                     "reachable": r.reachable,
                     "days_to_expire": r.days_to_expire,

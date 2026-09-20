@@ -4,7 +4,8 @@ Subcommands:
     once    run a single inspection cycle and exit (ideal for cron)
     run     run continuously, sleeping ``interval`` between cycles (daemon)
     report  print the current problems from the last cycle's saved state
-    check   inspect a single host ad hoc, ignoring the config's targets
+    check   inspect a single host or local file ad hoc, ignoring the config's
+            targets
 """
 
 from __future__ import annotations
@@ -52,8 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--json", action="store_true", help="print a JSON report instead of text"
     )
 
-    p_check = sub.add_parser("check", help="inspect one host ad hoc")
-    p_check.add_argument("host")
+    p_check = sub.add_parser(
+        "check", help="inspect one host or local certificate file ad hoc"
+    )
+    p_check.add_argument("host", nargs="?", help="omit when using --file")
+    p_check.add_argument("--file", help="inspect a local certificate instead of a host")
     p_check.add_argument("--port", type=int, default=443)
     p_check.add_argument("--no-verify", action="store_true")
     p_check.add_argument("--starttls")
@@ -63,12 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
-    target = Target(
-        host=args.host,
-        port=args.port,
-        verify=not args.no_verify,
-        starttls=args.starttls,
-    )
+    if bool(args.host) == bool(args.file):
+        print("certminder: check needs exactly one of HOST or --file", file=sys.stderr)
+        return 2
+    if args.file:
+        target = Target(file=args.file, verify=not args.no_verify)
+    else:
+        target = Target(
+            host=args.host,
+            port=args.port,
+            verify=not args.no_verify,
+            starttls=args.starttls,
+        )
     result = check_target(target, args.bin)
     icon = "ok" if result.status == "VALID" else result.status
     detail = (

@@ -25,8 +25,8 @@ def _labels(result: CheckResult) -> str:
     target = result.target
     parts = {
         "target": target.name,
-        "host": target.host,
-        "port": str(target.port),
+        "host": target.display_host,
+        "port": str(target.port) if target.host is not None else "",
         "status": result.status,
     }
     inner = ",".join(f'{k}="{_escape_label(v)}"' for k, v in parts.items())
@@ -37,8 +37,8 @@ def _problem_labels(result: CheckResult, problem: str) -> str:
     target = result.target
     parts = {
         "target": target.name,
-        "host": target.host,
-        "port": str(target.port),
+        "host": target.display_host,
+        "port": str(target.port) if target.host is not None else "",
         "problem": problem,
     }
     inner = ",".join(f'{k}="{_escape_label(v)}"' for k, v in parts.items())
