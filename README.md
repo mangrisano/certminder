@@ -166,6 +166,9 @@ WEBHOOK_TOKEN=abc123
 SMTP_PASSWORD=SuperSecret
 ```
 
+Copy [`.env.example`](.env.example) to `.env` and fill in real values as a
+starting point.
+
 ### Grouping targets (shared settings)
 
 Put targets that share settings — say a whole installation behind its own
