@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import smtplib
 import ssl
-import sys
 from email.message import EmailMessage
 
 from certminder.models import Event, Severity
-from certminder.notifiers.base import Notifier
+from certminder.notifiers.base import RemoteNotifier
 
 # Highest-to-lowest so the subject reflects the worst event in the batch.
 _SEVERITY_RANK = {
@@ -18,12 +17,15 @@ _SEVERITY_RANK = {
 }
 
 
-class EmailNotifier(Notifier):
+class EmailNotifier(RemoteNotifier):
     """Deliver a single summary email per cycle through an SMTP server.
 
     STARTTLS (``use_tls``, the default) and implicit TLS (``use_ssl``) are both
     supported; an unauthenticated relay is allowed by omitting credentials.
     """
+
+    name = "email"
+    delivery_errors = (smtplib.SMTPException, OSError)
 
     # How the body lines are ordered; configured via the ``order`` option.
     ORDERS = ("expiry", "severity", "none")
@@ -104,16 +106,8 @@ class EmailNotifier(Notifier):
         message.set_content(self._body(events))
         return message
 
-    def send(self, events: list[Event]) -> None:
-        if not events:
-            return
+    def _deliver(self, events: list[Event]) -> None:
         message = self._build_message(events)
-        try:
-            self._deliver(message)
-        except (smtplib.SMTPException, OSError) as exc:
-            print(f"certminder: email delivery failed: {exc}", file=sys.stderr)
-
-    def _deliver(self, message: EmailMessage) -> None:
         if self.use_ssl:
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(

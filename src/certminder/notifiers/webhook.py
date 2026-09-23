@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import json
-import sys
 import urllib.error
 import urllib.request
 
 from certminder.models import Event
-from certminder.notifiers.base import Notifier
+from certminder.notifiers.base import RemoteNotifier
 
 
-class WebhookNotifier(Notifier):
+class WebhookNotifier(RemoteNotifier):
     """Deliver events as a JSON array to an arbitrary endpoint."""
+
+    name = "webhook"
+    delivery_errors = (urllib.error.URLError, OSError)
 
     def __init__(
         self,
@@ -40,17 +42,12 @@ class WebhookNotifier(Notifier):
             ]
         ).encode()
 
-    def send(self, events: list[Event]) -> None:
-        if not events:
-            return
+    def _deliver(self, events: list[Event]) -> None:
         request = urllib.request.Request(
             self.url,
             data=self._payload(events),
             headers=self.headers,
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as resp:
-                resp.read()
-        except (urllib.error.URLError, OSError) as exc:
-            print(f"certminder: webhook delivery failed: {exc}", file=sys.stderr)
+        with urllib.request.urlopen(request, timeout=self.timeout) as resp:
+            resp.read()
