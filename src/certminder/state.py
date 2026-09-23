@@ -9,10 +9,10 @@ cycle).
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from certminder.atomic import atomic_write
 
 
 @dataclass
@@ -35,7 +35,7 @@ class TargetState:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TargetState":
+    def from_dict(cls, data: dict) -> TargetState:
         return cls(
             fingerprint=data.get("fingerprint"),
             status=data.get("status"),
@@ -74,13 +74,5 @@ class StateStore:
 
     def save(self) -> None:
         """Atomically write the state to disk."""
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {name: st.to_dict() for name, st in self._states.items()}
-        fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w") as fh:
-                json.dump(payload, fh, indent=2, sort_keys=True)
-            os.replace(tmp, self.path)
-        finally:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
+        atomic_write(self.path, json.dumps(payload, indent=2, sort_keys=True))
