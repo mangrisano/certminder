@@ -23,22 +23,16 @@ from certminder.models import CheckResult, Target
 _ANALYSED_CODES = {0, 3, 4, 5, 6, 7, 9}
 
 
-def build_command(bin_path: str, target: Target) -> list[str]:
-    """Assemble the certinspect command line for ``target``.
-
-    A file target (``target.file`` set) has no live handshake, so the
-    host-only flags (``--port``, ``--starttls``, ``--min-tls-version``,
-    ``--require-revocation-check``) are omitted even if set on the target —
-    config validation is expected to reject that combination earlier, but the
-    builder stays defensive since certinspect itself would exit 2 on it.
-    """
-    is_file = target.file is not None
-    cmd = [bin_path]
+def _target_args(is_file: bool, target: Target) -> list[str]:
+    """The positional/identifying args: what to inspect and how to reach it."""
     if is_file:
-        cmd += ["--file", target.file]
-    else:
-        cmd += [target.host, "--port", str(target.port)]
-    cmd += [
+        return ["--file", target.file]
+    return [target.host, "--port", str(target.port)]
+
+
+def _output_args(target: Target) -> list[str]:
+    """Output format and the validity thresholds certinspect scores against."""
+    return [
         "--json",
         # certinspect >= 2.0 defaults to a nested v2 JSON envelope; certminder
         # reads the flat schema-1 array, so request it explicitly.
@@ -51,40 +45,76 @@ def build_command(bin_path: str, target: Target) -> list[str]:
         "--critical-days",
         str(target.critical_days),
     ]
+
+
+def _connection_args(target: Target) -> list[str]:
+    """Verification and network-timing/retry flags."""
+    args: list[str] = []
     if target.verify:
-        cmd.append("--verify")
+        args.append("--verify")
     if target.connect_timeout is not None:
-        cmd += ["--connect-timeout", str(target.connect_timeout)]
+        args += ["--connect-timeout", str(target.connect_timeout)]
     if target.read_timeout is not None:
-        cmd += ["--read-timeout", str(target.read_timeout)]
+        args += ["--read-timeout", str(target.read_timeout)]
     if target.retries:
-        cmd += ["--retries", str(target.retries)]
+        args += ["--retries", str(target.retries)]
+    return args
+
+
+def _trust_args(is_file: bool, target: Target) -> list[str]:
+    """How the chain is validated: STARTTLS and custom trust anchors."""
+    args: list[str] = []
     if not is_file and target.starttls:
-        cmd += ["--starttls", target.starttls]
+        args += ["--starttls", target.starttls]
     if target.cafile:
-        cmd += ["--cafile", target.cafile]
+        args += ["--cafile", target.cafile]
     if target.capath:
-        cmd += ["--capath", target.capath]
-    # Opt-in maximum-validity policy: --cab-forum tracks the shrinking
-    # CA/Browser Forum cap by date, --not-after-max pins an explicit limit.
+        args += ["--capath", target.capath]
+    return args
+
+
+def _policy_args(is_file: bool, target: Target) -> list[str]:
+    """Opt-in policy checks (all surface as exit code 9)."""
+    args: list[str] = []
+    # Maximum-validity policy: --cab-forum tracks the shrinking CA/Browser
+    # Forum cap by date, --not-after-max pins an explicit limit.
     if target.cab_forum:
-        cmd.append("--cab-forum")
+        args.append("--cab-forum")
     elif target.not_after_max is not None:
-        cmd += ["--not-after-max", str(target.not_after_max)]
-    # Additional opt-in policy checks (all surface as exit code 9).
+        args += ["--not-after-max", str(target.not_after_max)]
     if target.require_sct:
-        cmd.append("--require-sct")
+        args.append("--require-sct")
     if target.require_must_staple:
-        cmd.append("--require-must-staple")
+        args.append("--require-must-staple")
     if not is_file and target.require_revocation_check:
-        cmd.append("--require-revocation-check")
+        args.append("--require-revocation-check")
     if not is_file and target.min_tls_version:
-        cmd += ["--min-tls-version", target.min_tls_version]
+        args += ["--min-tls-version", target.min_tls_version]
     # A named policy profile bundles several of the checks above; certinspect
     # lets any explicit flag override it, so passing both is safe.
     if target.profile:
-        cmd += ["--profile", target.profile]
-    return cmd
+        args += ["--profile", target.profile]
+    return args
+
+
+def build_command(bin_path: str, target: Target) -> list[str]:
+    """Assemble the certinspect command line for ``target``.
+
+    A file target (``target.file`` set) has no live handshake, so the
+    host-only flags (``--port``, ``--starttls``, ``--min-tls-version``,
+    ``--require-revocation-check``) are omitted even if set on the target —
+    config validation is expected to reject that combination earlier, but the
+    builder stays defensive since certinspect itself would exit 2 on it.
+    """
+    is_file = target.file is not None
+    return [
+        bin_path,
+        *_target_args(is_file, target),
+        *_output_args(target),
+        *_connection_args(target),
+        *_trust_args(is_file, target),
+        *_policy_args(is_file, target),
+    ]
 
 
 def _validity_status(info: dict[str, Any], fallback: str) -> str:
