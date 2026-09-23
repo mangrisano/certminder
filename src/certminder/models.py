@@ -7,11 +7,11 @@ passed to notifiers and written to the state file without ceremony.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     """Ordered alert severity, low to high."""
 
     INFO = "info"
@@ -19,7 +19,7 @@ class Severity(str, Enum):
     CRITICAL = "critical"
 
 
-class EventKind(str, Enum):
+class EventKind(StrEnum):
     """The kinds of change certminder reports.
 
     The first group derives from the certificate's own state; ``RECOVERED`` is
