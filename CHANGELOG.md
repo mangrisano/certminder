@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-09-23
+
+### Changed
+
+- Internal refactor, no behavioural change: deduplicated atomic file writes
+  (`state.py`, `metrics.py`) into a shared `atomic_write()` helper, unified
+  notifier delivery-error handling behind a `RemoteNotifier` template method,
+  and split several over-complex functions (`config.load_config`,
+  `engine.build_command`, `evaluator.detect_problems`/`evaluate`) into
+  smaller, single-purpose helpers.
+
 ## [2.4.0] - 2026-09-20
 
 ### Added
@@ -330,7 +341,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/mangrisano/certminder/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/mangrisano/certminder/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mangrisano/certminder/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/mangrisano/certminder/compare/v2.2.0...v2.2.1
