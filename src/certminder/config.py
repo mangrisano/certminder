@@ -247,6 +247,52 @@ def _interpolate_value(value: Any, env: dict[str, str]) -> Any:
     return value
 
 
+def _build_group_targets(
+    raw_groups: list[Any], defaults: dict[str, Any]
+) -> list[Target]:
+    """Build the targets contributed by the config's ``groups:`` entries.
+
+    Group-level keys (other than ``name``/``targets``) are shared defaults for
+    the group's targets: global defaults < group settings < per-target.
+    """
+    targets: list[Target] = []
+    for index, group in enumerate(raw_groups, start=1):
+        if not isinstance(group, dict):
+            raise ConfigError(f"group #{index} must be a mapping")
+        group_targets = group.get("targets")
+        if not group_targets:
+            raise ConfigError(f"group {group.get('name', index)!r} has no targets")
+        group_defaults = {
+            **defaults,
+            **{k: v for k, v in group.items() if k not in ("name", "targets")},
+        }
+        targets += [_build_target(t, group_defaults) for t in group_targets]
+    return targets
+
+
+def _build_discover_sources(
+    raw_discover: list[Any], defaults: dict[str, Any]
+) -> list[DiscoverSource]:
+    """Build the config's ``discover:`` entries into :class:`DiscoverSource`."""
+    sources = []
+    for index, entry in enumerate(raw_discover, start=1):
+        if not isinstance(entry, dict):
+            raise ConfigError(f"discover entry #{index} must be a mapping")
+        sources.append(_build_discover_source(entry, defaults))
+    return sources
+
+
+def _build_notifiers(raw_notifiers: list[dict[str, Any]]) -> list[NotifierConfig]:
+    """Build the config's ``notifiers:`` entries, defaulting to a console sink."""
+    notifiers = []
+    for entry in raw_notifiers or [{"type": "console"}]:
+        if "type" not in entry:
+            raise ConfigError(f"notifier is missing 'type': {entry!r}")
+        options = {k: v for k, v in entry.items() if k != "type"}
+        notifiers.append(NotifierConfig(type=entry["type"], options=options))
+    return notifiers
+
+
 def load_config(path: str | Path) -> Config:
     """Read, parse and validate the configuration at ``path``."""
     path = Path(path).expanduser()
@@ -272,40 +318,15 @@ def load_config(path: str | Path) -> Config:
     env = _load_environment(path, secrets_file)
     data = _interpolate_value(data, env)
 
-    raw_targets = data.get("targets") or []
     defaults = data.get("defaults") or {}
-    targets = [_build_target(t, defaults) for t in raw_targets]
-
-    for index, group in enumerate(data.get("groups") or [], start=1):
-        if not isinstance(group, dict):
-            raise ConfigError(f"group #{index} must be a mapping")
-        group_targets = group.get("targets")
-        if not group_targets:
-            raise ConfigError(f"group {group.get('name', index)!r} has no targets")
-        # Group-level keys (other than name/targets) are shared defaults for the
-        # group's targets: global defaults < group settings < per-target.
-        group_defaults = {
-            **defaults,
-            **{k: v for k, v in group.items() if k not in ("name", "targets")},
-        }
-        targets += [_build_target(t, group_defaults) for t in group_targets]
-
-    raw_discover = data.get("discover") or []
-    discover_sources = []
-    for index, entry in enumerate(raw_discover, start=1):
-        if not isinstance(entry, dict):
-            raise ConfigError(f"discover entry #{index} must be a mapping")
-        discover_sources.append(_build_discover_source(entry, defaults))
+    targets = [_build_target(t, defaults) for t in data.get("targets") or []]
+    targets += _build_group_targets(data.get("groups") or [], defaults)
+    discover_sources = _build_discover_sources(data.get("discover") or [], defaults)
 
     if not targets and not discover_sources:
         raise ConfigError("at least one target or discover entry is required")
 
-    notifiers = []
-    for entry in data.get("notifiers") or [{"type": "console"}]:
-        if "type" not in entry:
-            raise ConfigError(f"notifier is missing 'type': {entry!r}")
-        options = {k: v for k, v in entry.items() if k != "type"}
-        notifiers.append(NotifierConfig(type=entry["type"], options=options))
+    notifiers = _build_notifiers(data.get("notifiers"))
 
     return Config(
         targets=targets,
