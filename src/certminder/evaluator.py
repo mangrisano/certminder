@@ -11,9 +11,53 @@ single ``RECOVERED`` event is emitted per problem that clears.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 from certminder.models import CheckResult, Event, EventKind, Severity
 from certminder.state import TargetState
+
+
+def _validity_event(name: str, info: dict, days: int | None) -> Event | None:
+    """Return the event for the certificate's own validity status, if any.
+
+    Read from certinspect's own (chain-independent) ``status`` field, kept
+    separate from :func:`detect_problems` so a dated leaf's real cause (renew
+    or wait) is decided in one place, independent of the other checks.
+    """
+    validity = info.get("status")
+    if validity in {"EXPIRED", "INVALID DATES"}:
+        ago = abs(days) if isinstance(days, int) else "?"
+        return Event(
+            target_name=name,
+            kind=EventKind.EXPIRED,
+            severity=Severity.CRITICAL,
+            message=f"{name}: certificate expired {ago} day(s) ago",
+            details={"days_to_expire": days},
+        )
+    if validity == "NOT YET VALID":
+        return Event(
+            target_name=name,
+            kind=EventKind.NOT_YET_VALID,
+            severity=Severity.CRITICAL,
+            message=f"{name}: certificate is not valid yet",
+        )
+    if validity == "CRITICAL":
+        return Event(
+            target_name=name,
+            kind=EventKind.CRITICAL,
+            severity=Severity.CRITICAL,
+            message=f"{name}: certificate expires in {days} day(s)",
+            details={"days_to_expire": days},
+        )
+    if validity == "EXPIRING":
+        return Event(
+            target_name=name,
+            kind=EventKind.EXPIRING,
+            severity=Severity.WARNING,
+            message=f"{name}: certificate expires in {days} day(s)",
+            details={"days_to_expire": days},
+        )
+    return None
 
 
 def detect_problems(result: CheckResult) -> list[Event]:
@@ -43,31 +87,9 @@ def detect_problems(result: CheckResult) -> list[Event]:
         )
 
     # Validity, from certinspect's own (chain-independent) status field.
-    validity = info.get("status")
-    if validity in {"EXPIRED", "INVALID DATES"}:
-        ago = abs(days) if isinstance(days, int) else "?"
-        add(
-            EventKind.EXPIRED,
-            Severity.CRITICAL,
-            f"certificate expired {ago} day(s) ago",
-            days_to_expire=days,
-        )
-    elif validity == "NOT YET VALID":
-        add(EventKind.NOT_YET_VALID, Severity.CRITICAL, "certificate is not valid yet")
-    elif validity == "CRITICAL":
-        add(
-            EventKind.CRITICAL,
-            Severity.CRITICAL,
-            f"certificate expires in {days} day(s)",
-            days_to_expire=days,
-        )
-    elif validity == "EXPIRING":
-        add(
-            EventKind.EXPIRING,
-            Severity.WARNING,
-            f"certificate expires in {days} day(s)",
-            days_to_expire=days,
-        )
+    validity_event = _validity_event(name, info, days)
+    if validity_event is not None:
+        problems.append(validity_event)
 
     # Chain of trust.
     if result.chain_trusted is False:
@@ -174,6 +196,54 @@ def _confirm(
     return count >= threshold, count
 
 
+def _unreachable_result(
+    name: str,
+    result: CheckResult,
+    previous: TargetState,
+    active: set[str],
+    prev_notified: dict[str, float],
+    expected: set[str],
+    failure_threshold: int,
+    due: Callable[[str], bool],
+    now: float,
+) -> tuple[list[Event], TargetState]:
+    """Handle a target that could not be assessed this cycle.
+
+    The certificate cannot be assessed, so surface only ``UNREACHABLE``,
+    deduplicated (subject to renotify). Any per-problem alerts are dropped
+    (unknown now) and re-raised when the host returns.
+    """
+    events: list[Event] = []
+    key = f"{name}|{EventKind.UNREACHABLE.value}"
+    confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
+    if not confirmed:
+        # Within the flap window: stay silent, just remember the count.
+        return events, TargetState(
+            fingerprint=previous.fingerprint,
+            status=result.status,
+            pending={key: count},
+        )
+    if EventKind.UNREACHABLE.value not in expected and due(key):
+        events.append(
+            Event(
+                target_name=name,
+                kind=EventKind.UNREACHABLE,
+                severity=Severity.CRITICAL,
+                message=f"{name}: unreachable ({result.error or 'no detail'})",
+                details={"error": result.error, "exit_code": result.exit_code},
+            )
+        )
+        notified = now
+    else:
+        notified = prev_notified.get(key, now)
+    return events, TargetState(
+        fingerprint=previous.fingerprint,
+        status=result.status,
+        active_alerts=[key],
+        notified_at={key: notified},
+    )
+
+
 def evaluate(
     result: CheckResult,
     previous: TargetState,
@@ -211,37 +281,18 @@ def evaluate(
             and now - last >= renotify_after
         )
 
-    # Unreachable: the certificate cannot be assessed, so surface only that,
-    # deduplicated (subject to renotify). Any per-problem alerts are dropped
-    # (unknown now) and re-raised when the host returns.
+    # Unreachable: no per-problem evaluation is possible this cycle.
     if not result.reachable:
-        key = f"{name}|{EventKind.UNREACHABLE.value}"
-        confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
-        if not confirmed:
-            # Within the flap window: stay silent, just remember the count.
-            return events, TargetState(
-                fingerprint=previous.fingerprint,
-                status=result.status,
-                pending={key: count},
-            )
-        if EventKind.UNREACHABLE.value not in expected and _due(key):
-            events.append(
-                Event(
-                    target_name=name,
-                    kind=EventKind.UNREACHABLE,
-                    severity=Severity.CRITICAL,
-                    message=f"{name}: unreachable ({result.error or 'no detail'})",
-                    details={"error": result.error, "exit_code": result.exit_code},
-                )
-            )
-            notified = now
-        else:
-            notified = prev_notified.get(key, now)
-        return events, TargetState(
-            fingerprint=previous.fingerprint,
-            status=result.status,
-            active_alerts=[key],
-            notified_at={key: notified},
+        return _unreachable_result(
+            name,
+            result,
+            previous,
+            active,
+            prev_notified,
+            expected,
+            failure_threshold,
+            _due,
+            now,
         )
 
     # Fingerprint change: report every rotation (transient, not tracked).
@@ -290,8 +341,7 @@ def evaluate(
         else:
             notified[key] = prev_notified.get(key, now)
 
-    for key in sorted(active - new_active):
-        events.append(_resolved_event(name, key))
+    events.extend(_resolved_event(name, key) for key in sorted(active - new_active))
 
     return events, TargetState(
         fingerprint=result.fingerprint or previous.fingerprint,
