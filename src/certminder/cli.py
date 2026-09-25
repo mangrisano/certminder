@@ -17,7 +17,7 @@ import sys
 from certminder import __version__
 from certminder.config import Config, ConfigError, load_config
 from certminder.engine import check_target
-from certminder.models import Target, alert_kind
+from certminder.models import Status, Target, alert_kind
 from certminder.scheduler import build_notifiers, run_loop, run_once
 from certminder.state import StateStore
 
@@ -80,14 +80,14 @@ def _cmd_check(args: argparse.Namespace) -> int:
             starttls=args.starttls,
         )
     result = check_target(target, args.bin)
-    icon = "ok" if result.status == "VALID" else result.status
+    icon = "ok" if result.status == Status.VALID else result.status
     detail = (
         f"{result.days_to_expire} day(s) left"
         if result.days_to_expire is not None
         else (result.error or "")
     )
     print(f"{target.name}: {icon} ({detail})")
-    return 0 if result.status == "VALID" else 1
+    return 0 if result.status == Status.VALID else 1
 
 
 def _cmd_report(config: Config, as_json: bool) -> int:

@@ -24,6 +24,23 @@ class Severity(StrEnum):
         return list(Severity).index(self)
 
 
+class Status(StrEnum):
+    """A target's overall state after one check, derived from certinspect."""
+
+    VALID = "VALID"
+    EXPIRING = "EXPIRING"
+    CRITICAL = "CRITICAL"
+    EXPIRED = "EXPIRED"
+    NOT_YET_VALID = "NOT_YET_VALID"
+    HOSTNAME_MISMATCH = "HOSTNAME_MISMATCH"
+    REVOKED = "REVOKED"
+    CHAIN_UNTRUSTED = "CHAIN_UNTRUSTED"
+    PIN_MISMATCH = "PIN_MISMATCH"
+    POLICY_VIOLATION = "POLICY_VIOLATION"
+    UNREACHABLE = "UNREACHABLE"
+    ERROR = "ERROR"
+
+
 class EventKind(StrEnum):
     """The kinds of change certminder reports.
 
@@ -116,7 +133,7 @@ class CheckResult:
 
     target: Target
     reachable: bool
-    status: str
+    status: Status
     exit_code: int
     days_to_expire: int | None = None
     fingerprint: str | None = None

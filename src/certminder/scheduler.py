@@ -14,7 +14,7 @@ from certminder.discovery import DiscoveryError, discover_hostnames
 from certminder.engine import check_target
 from certminder.evaluator import evaluate
 from certminder.metrics import write_prometheus
-from certminder.models import CheckResult, DiscoverSource, Event, Target
+from certminder.models import CheckResult, DiscoverSource, Event, Status, Target
 from certminder.notifiers import Notifier, build_notifier
 from certminder.state import StateStore, TargetState
 
@@ -223,7 +223,7 @@ def _safe_run_once(
 def _log_heartbeat(report: CycleReport) -> None:
     """Print a one-line cycle summary so a quiet daemon is visibly alive."""
     total = len(report.results)
-    healthy = sum(1 for r in report.results if r.status == "VALID")
+    healthy = sum(1 for r in report.results if r.status == Status.VALID)
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(
         f"{stamp} [hb] cycle complete: {total} target(s), "

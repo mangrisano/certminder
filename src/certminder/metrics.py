@@ -12,7 +12,7 @@ from pathlib import Path
 
 from certminder.atomic import atomic_write
 from certminder.evaluator import detect_problems
-from certminder.models import CheckResult
+from certminder.models import CheckResult, Status
 
 
 def _escape_label(value: str) -> str:
@@ -72,7 +72,7 @@ def render(results: list[CheckResult], *, now: float | None = None) -> str:
         "# TYPE certminder_certificate_valid gauge",
     ]
     for result in results:
-        valid = 1 if result.status == "VALID" else 0
+        valid = 1 if result.status == Status.VALID else 0
         lines.append(f"certminder_certificate_valid{_labels(result)} {valid}")
 
     lines += [

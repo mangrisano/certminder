@@ -16,7 +16,7 @@ import json
 import subprocess
 from typing import Any
 
-from certminder.models import CheckResult, Target
+from certminder.models import CheckResult, Status, Target
 
 # Exit codes that still produce a usable JSON document (the certificate was
 # fetched and analysed; it simply has a problem).
@@ -145,7 +145,7 @@ def build_command(bin_path: str, target: Target) -> list[str]:
     ]
 
 
-def _validity_status(info: dict[str, Any], fallback: str) -> str:
+def _validity_status(info: dict[str, Any], fallback: Status) -> Status:
     """Return NOT_YET_VALID / EXPIRED from the certificate's own dates.
 
     Both a not-yet-valid and an expired leaf also break chain verification, so
@@ -156,32 +156,32 @@ def _validity_status(info: dict[str, Any], fallback: str) -> str:
     certificate's own validity dates are fine.
     """
     if info.get("status") == "NOT YET VALID":
-        return "NOT_YET_VALID"
+        return Status.NOT_YET_VALID
     days = info.get("days_to_expire")
     if isinstance(days, int) and days < 0:
-        return "EXPIRED"
+        return Status.EXPIRED
     return fallback
 
 
-def _status_from(exit_code: int, info: dict[str, Any]) -> str:
-    """Refine certinspect's exit code into a certminder status string."""
-    if exit_code == 0:
-        return "VALID"
-    if exit_code == 3:
-        return "EXPIRING"
+# Exit codes whose status needs no look at the certificate details.
+_STATUS_BY_CODE = {
+    0: Status.VALID,
+    3: Status.EXPIRING,
+    5: Status.HOSTNAME_MISMATCH,
+    7: Status.PIN_MISMATCH,
+    9: Status.POLICY_VIOLATION,
+}
+
+
+def _status_from(exit_code: int, info: dict[str, Any]) -> Status:
+    """Refine certinspect's exit code into a certminder status."""
     if exit_code == 4:
-        return _validity_status(info, "CRITICAL")
-    if exit_code == 5:
-        return "HOSTNAME_MISMATCH"
+        return _validity_status(info, Status.CRITICAL)
     if exit_code == 6:
         if info.get("revocation_status") == "REVOKED":
-            return "REVOKED"
-        return _validity_status(info, "CHAIN_UNTRUSTED")
-    if exit_code == 7:
-        return "PIN_MISMATCH"
-    if exit_code == 9:
-        return "POLICY_VIOLATION"
-    return "UNREACHABLE"
+            return Status.REVOKED
+        return _validity_status(info, Status.CHAIN_UNTRUSTED)
+    return _STATUS_BY_CODE.get(exit_code, Status.UNREACHABLE)
 
 
 def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
@@ -198,7 +198,7 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
         return CheckResult(
             target=target,
             reachable=False,
-            status="ERROR",
+            status=Status.ERROR,
             exit_code=127,
             error=f"certinspect executable not found: {bin_path!r}",
         )
@@ -206,7 +206,7 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
         return CheckResult(
             target=target,
             reachable=False,
-            status="UNREACHABLE",
+            status=Status.UNREACHABLE,
             exit_code=124,
             error="certinspect timed out",
         )
@@ -214,7 +214,7 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
         return CheckResult(
             target=target,
             reachable=False,
-            status="ERROR",
+            status=Status.ERROR,
             exit_code=126,
             error=f"could not run certinspect: {err}",
         )
@@ -232,7 +232,7 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
         return CheckResult(
             target=target,
             reachable=False,
-            status="UNREACHABLE",
+            status=Status.UNREACHABLE,
             exit_code=proc.returncode,
             error=(proc.stderr or proc.stdout or "").strip() or "inspection failed",
         )
