@@ -25,6 +25,9 @@ class TargetState:
     active_alerts: list[str] = field(default_factory=list)
     notified_at: dict[str, float] = field(default_factory=dict)
     pending: dict[str, int] = field(default_factory=dict)
+    #: When the target was last checked (epoch seconds); None for state written
+    #: by a certminder older than 2.5.
+    last_seen: float | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -33,16 +36,19 @@ class TargetState:
             "active_alerts": sorted(self.active_alerts),
             "notified_at": self.notified_at,
             "pending": self.pending,
+            "last_seen": self.last_seen,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> TargetState:
+        last_seen = data.get("last_seen")
         return cls(
             fingerprint=data.get("fingerprint"),
             status=data.get("status"),
             active_alerts=list(data.get("active_alerts", [])),
             notified_at=dict(data.get("notified_at", {})),
             pending=dict(data.get("pending", {})),
+            last_seen=None if last_seen is None else float(last_seen),
         )
 
 
@@ -83,6 +89,37 @@ class StateStore:
     def set(self, name: str, state: TargetState) -> None:
         """Update the in-memory state for ``name``."""
         self._states[name] = state
+
+    def prune(self, cutoff: float) -> None:
+        """Forget targets not checked since ``cutoff`` (epoch seconds).
+
+        A target removed from the config, or a discovered host that no longer
+        shows up, would otherwise stay in the file forever. Entries without a
+        ``last_seen`` (written before it existed) that were not refreshed by the
+        current cycle are dropped too.
+        """
+        self._states = {
+            name: state
+            for name, state in self._states.items()
+            if state.last_seen is not None and state.last_seen >= cutoff
+        }
+
+    def last_cycle(self) -> dict[str, TargetState] | None:
+        """The targets checked by the most recent cycle, by name.
+
+        Every target of a cycle is stamped with the same ``last_seen``, so they
+        are the entries sharing the latest one. None when no entry has a
+        ``last_seen`` yet (no cycle has run, or the state predates it).
+        """
+        seen = [s.last_seen for s in self._states.values() if s.last_seen is not None]
+        if not seen:
+            return None
+        latest = max(seen)
+        return {
+            name: state
+            for name, state in self._states.items()
+            if state.last_seen == latest
+        }
 
     def save(self) -> None:
         """Atomically write the state to disk."""

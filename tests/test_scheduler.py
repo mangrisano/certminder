@@ -218,6 +218,27 @@ def test_a_raising_notifier_counts_as_undelivered(monkeypatch, tmp_path, capsys)
     capsys.readouterr()
 
 
+def test_state_of_a_removed_target_expires(monkeypatch, tmp_path):
+    from certminder.scheduler import STATE_RETENTION_SECONDS
+    from certminder.state import StateStore
+
+    _problem(monkeypatch)
+    clock = [1_000_000.0]
+    monkeypatch.setattr("certminder.scheduler.time.time", lambda: clock[0])
+    old = Target(host="old.example.com", port=443)
+    run_once(_config(tmp_path, targets=[old]), notifiers=[])
+    assert StateStore(tmp_path / "state.json").get(old.name).last_seen == clock[0]
+
+    # Removed from the config: kept for the retention window, then forgotten.
+    config = _config(tmp_path)
+    clock[0] += STATE_RETENTION_SECONDS
+    run_once(config, notifiers=[])
+    assert StateStore(tmp_path / "state.json").get(old.name).active_alerts
+    clock[0] += 1
+    run_once(config, notifiers=[])
+    assert StateStore(tmp_path / "state.json").get(old.name).last_seen is None
+
+
 def _problem(monkeypatch):
     monkeypatch.setattr(
         "certminder.scheduler.check_target",

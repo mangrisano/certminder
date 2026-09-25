@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from certminder.config import Config
@@ -17,6 +17,12 @@ from certminder.metrics import write_prometheus
 from certminder.models import CheckResult, DiscoverSource, Event, Target
 from certminder.notifiers import Notifier, build_notifier
 from certminder.state import StateStore, TargetState
+
+# How long the state of a target that is no longer checked (removed from the
+# config, or a discovered host that stopped showing up) is kept. A week rides
+# out a discovery source being down for a few cycles without forgetting which
+# alerts were already sent.
+STATE_RETENTION_SECONDS = 7 * 24 * 3600
 
 
 @dataclass
@@ -162,7 +168,7 @@ def run_once(
             renotify_after=config.renotify_after,
             failure_threshold=threshold,
         )
-        store.set(name, new_state)
+        store.set(name, replace(new_state, last_seen=now))
         all_events.extend(events)
 
     # Deliver before persisting: if a sink fails, the targets that produced
@@ -172,7 +178,8 @@ def run_once(
     if not delivered:
         for name in {event.target_name for event in all_events}:
             if name in stored:
-                store.set(name, stored[name])
+                store.set(name, replace(stored[name], last_seen=now))
+    store.prune(now - STATE_RETENTION_SECONDS)
     store.save()
 
     if config.prometheus_file is not None:

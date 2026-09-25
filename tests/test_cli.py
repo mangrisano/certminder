@@ -68,6 +68,36 @@ def test_report_json(tmp_path, capsys):
     assert data["problems"][0]["problems"] == ["expired"]
 
 
+def test_report_covers_the_last_cycle_including_discovered_targets(tmp_path, capsys):
+    configured = Target(host="good.com", port=443)
+    config = _config(tmp_path, [configured])
+    store = StateStore(config.state_file)
+    store.set(configured.name, TargetState(status="VALID", last_seen=200.0))
+    # Found through `discover`, so not in config.targets.
+    store.set(
+        "shadow.good.com:443",
+        TargetState(
+            status="EXPIRED",
+            active_alerts=["shadow.good.com:443|expired"],
+            last_seen=200.0,
+        ),
+    )
+    # No longer checked: left over from an older cycle.
+    store.set(
+        "old.com:443",
+        TargetState(
+            status="EXPIRED", active_alerts=["old.com:443|expired"], last_seen=100.0
+        ),
+    )
+    store.save()
+
+    code = _cmd_report(config, as_json=True)
+    data = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert data["total_targets"] == 2
+    assert [row["target"] for row in data["problems"]] == ["shadow.good.com:443"]
+
+
 def _fake_run(stdout, returncode):
     def runner(*args, **kwargs):
         return subprocess.CompletedProcess(

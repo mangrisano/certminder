@@ -18,6 +18,38 @@ def test_non_object_state_file_is_ignored(tmp_path, capsys, content):
     assert "malformed state file" in capsys.readouterr().err
 
 
+def test_last_seen_roundtrips_and_is_optional(tmp_path):
+    path = tmp_path / "state.json"
+    path.write_text(json.dumps({"a:443": {"status": "VALID"}}))
+    assert StateStore(path).get("a:443").last_seen is None
+    store = StateStore(path)
+    store.set("a:443", TargetState(status="VALID", last_seen=123.5))
+    store.save()
+    assert StateStore(path).get("a:443").last_seen == 123.5
+
+
+def test_prune_drops_entries_not_seen_since_cutoff(tmp_path):
+    store = StateStore(tmp_path / "state.json")
+    store.set("fresh:443", TargetState(last_seen=100.0))
+    store.set("stale:443", TargetState(last_seen=10.0))
+    store.set("legacy:443", TargetState())
+    store.prune(50.0)
+    assert store.get("fresh:443").last_seen == 100.0
+    assert store.get("stale:443") == TargetState()
+    assert store.get("legacy:443") == TargetState()
+
+
+def test_last_cycle_returns_the_most_recent_targets(tmp_path):
+    store = StateStore(tmp_path / "state.json")
+    assert store.last_cycle() is None
+    store.set("legacy:443", TargetState())
+    assert store.last_cycle() is None
+    store.set("a:443", TargetState(last_seen=200.0))
+    store.set("b:443", TargetState(last_seen=200.0))
+    store.set("old:443", TargetState(last_seen=100.0))
+    assert sorted(store.last_cycle()) == ["a:443", "b:443"]
+
+
 def test_malformed_entry_is_skipped_others_kept(tmp_path, capsys):
     path = tmp_path / "state.json"
     path.write_text(

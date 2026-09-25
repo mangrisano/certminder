@@ -94,26 +94,32 @@ def _cmd_report(config: Config, as_json: bool) -> int:
     """Print the currently-active problems from the persisted state.
 
     Reads the last cycle's saved state (instant, no network), so it reflects
-    what the daemon last saw. Exit code 1 when any target has a problem, else 0.
+    what the daemon last saw — including targets found through ``discover``.
+    Exit code 1 when any target has a problem, else 0.
     """
     store = StateStore(config.state_file)
+    states = store.last_cycle()
+    if states is None:
+        # State written before last_seen existed: fall back to the config.
+        states = {target.name: store.get(target.name) for target in config.targets}
     rows = []
-    for target in config.targets:
-        state = store.get(target.name)
+    for name in sorted(states):
+        state = states[name]
         if state.active_alerts:
             rows.append(
                 {
-                    "target": target.name,
+                    "target": name,
                     "status": state.status,
                     "problems": sorted(
                         key.rsplit("|", 1)[-1] for key in state.active_alerts
                     ),
                 }
             )
+    total = len(states)
 
     if as_json:
         report = {
-            "total_targets": len(config.targets),
+            "total_targets": total,
             "with_problems": len(rows),
             "problems": rows,
         }
@@ -127,9 +133,9 @@ def _cmd_report(config: Config, as_json: bool) -> int:
         )
         return 0
     if not rows:
-        print(f"All {len(config.targets)} target(s) OK.")
+        print(f"All {total} target(s) OK.")
         return 0
-    print(f"{len(rows)} of {len(config.targets)} target(s) with active problems:")
+    print(f"{len(rows)} of {total} target(s) with active problems:")
     for row in rows:
         print(f"  - {row['target']}: {', '.join(row['problems'])}")
     return 1

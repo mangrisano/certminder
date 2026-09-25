@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `certminder report` now covers every target of the last cycle, including the
+  hosts found through `discover`. It used to list only the targets written in
+  the config, so a problem on a discovered host never showed up there. Each
+  target's state now records when it was last checked (`last_seen`).
+- The state file no longer grows forever. The state of a target that is no
+  longer checked (removed from the config, or a discovered host that stopped
+  showing up) is dropped after 7 days, so a discovery source that is down for a
+  few cycles does not make certminder forget the alerts it already sent.
 - Slow but healthy endpoints are no longer reported as unreachable. certinspect
   was killed after `timeout + 30` seconds, but a verified check does two TLS
   handshakes (each retried `retries` times, each bounded by the connect and
