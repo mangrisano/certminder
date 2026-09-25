@@ -36,6 +36,32 @@ def test_slack_escapes_mentions_and_links():
     assert "&amp; more" in text
 
 
+@pytest.mark.parametrize("url", ["http://hooks.slack.com/x", "file:///etc/passwd"])
+def test_slack_requires_https(url):
+    from certminder.notifiers.slack import SlackNotifier
+
+    with pytest.raises(ValueError, match="https"):
+        SlackNotifier(url)
+
+
+def test_webhook_rejects_non_http_schemes():
+    from certminder.notifiers.webhook import WebhookNotifier
+
+    with pytest.raises(ValueError, match="http"):
+        WebhookNotifier("file:///etc/passwd")
+
+
+def test_webhook_warns_on_plain_http_without_printing_the_url(capsys):
+    from certminder.notifiers.webhook import WebhookNotifier
+
+    WebhookNotifier("http://alerts.internal/hook?token=s3cr3t")
+    err = capsys.readouterr().err
+    assert "plain http://" in err
+    assert "s3cr3t" not in err
+    WebhookNotifier("https://alerts.example/hook")
+    assert capsys.readouterr().err == ""
+
+
 def test_build_notifier_unknown_type():
     with pytest.raises(ValueError):
         build_notifier("does-not-exist", {})

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from certminder.models import Event, Severity
@@ -30,6 +31,9 @@ class SlackNotifier(RemoteNotifier):
     def __init__(self, webhook_url: str, timeout: float = 10.0):
         if not webhook_url:
             raise ValueError("slack notifier requires 'webhook_url'")
+        # The webhook URL is the credential, so it must not travel in clear.
+        if urllib.parse.urlsplit(webhook_url).scheme.lower() != "https":
+            raise ValueError("slack notifier 'webhook_url' must be an https:// URL")
         self.webhook_url = webhook_url
         self.timeout = timeout
 

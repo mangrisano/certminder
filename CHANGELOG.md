@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-09-25
+
+### Security
+
+- The Slack notifier requires an `https://` webhook URL. The URL is the
+  credential that lets anyone post to the channel, and a plain `http://` URL
+  sent it in clear text. The generic webhook notifier accepts only `http://` or
+  `https://` URLs and warns at startup when it sends over plain `http://`
+  (without printing the URL, which may carry a token).
+
 ## [2.5.1] - 2026-09-25
 
 ### Security
@@ -434,7 +444,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/mangrisano/certminder/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/mangrisano/certminder/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/mangrisano/certminder/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/mangrisano/certminder/compare/v2.4.1...v2.4.2
