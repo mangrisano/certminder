@@ -16,6 +16,11 @@ _EMOJI = {
 }
 
 
+def _escape(text: str) -> str:
+    """Escape Slack's control characters, so ``<!channel>`` or links stay text."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 class SlackNotifier(RemoteNotifier):
     """Send a single Slack message summarising the cycle's events."""
 
@@ -29,7 +34,7 @@ class SlackNotifier(RemoteNotifier):
         self.timeout = timeout
 
     def _format(self, events: list[Event]) -> str:
-        return "\n".join(f"{_EMOJI[e.severity]} {e.message}" for e in events)
+        return "\n".join(f"{_EMOJI[e.severity]} {_escape(e.message)}" for e in events)
 
     def _deliver(self, events: list[Event]) -> None:
         payload = json.dumps({"text": self._format(events)}).encode()

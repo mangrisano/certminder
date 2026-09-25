@@ -4,7 +4,23 @@ from __future__ import annotations
 
 import pytest
 
-from certminder.models import Target
+from certminder.models import Event, EventKind, Severity, Target, printable
+
+
+def test_printable_escapes_control_characters():
+    assert printable("a\x1b[2Jb\nc\x7f") == "a\\x1b[2Jb\\nc\\x7f"
+    assert printable("café → ok") == "café → ok"
+
+
+def test_event_message_cannot_carry_raw_control_characters():
+    event = Event(
+        target_name="x",
+        kind=EventKind.CHAIN_UNTRUSTED,
+        severity=Severity.CRITICAL,
+        message="x: issuer CN=\x1b[32mall good\n[ok] y: fine",
+    )
+    assert "\x1b" not in event.message
+    assert "\n" not in event.message
 
 
 def test_target_needs_host_or_file():

@@ -25,6 +25,17 @@ def test_registry_exposes_email():
     assert REGISTRY["email"] is EmailNotifier
 
 
+def test_slack_escapes_mentions_and_links():
+    from certminder.notifiers.slack import SlackNotifier
+
+    text = SlackNotifier("https://hooks.invalid/x")._format(
+        [_event(message="x: <!channel> <https://evil.example|renew> & more")]
+    )
+    assert "<" not in text and ">" not in text
+    assert "&lt;!channel&gt;" in text
+    assert "&amp; more" in text
+
+
 def test_build_notifier_unknown_type():
     with pytest.raises(ValueError):
         build_notifier("does-not-exist", {})

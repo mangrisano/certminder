@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Text taken from remote certificates and CT logs can no longer drive the
+  console or Slack. Alert messages quote issuer names, chain errors and
+  hostnames that a monitored server (or a certificate logged for your domain)
+  controls: a raw terminal escape sequence or newline could repaint the console
+  or forge extra lines in the logs, and `<!channel>` or `<url|text>` became a
+  channel-wide mention or a disguised link in Slack. Control characters are now
+  shown as escapes (`\x1b`, `\n`) and Slack messages escape `&`, `<` and `>`.
 - A notifier entry without `type` no longer prints its values in the error
   message. `${VAR}` references are resolved before validation, so the message
   used to show the SMTP password or the Slack webhook URL in clear text on

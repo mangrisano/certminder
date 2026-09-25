@@ -6,9 +6,22 @@ passed to notifiers and written to the state file without ceremony.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
+
+
+def printable(text: str) -> str:
+    """Show control characters as escapes (``\\x1b``, ``\\n``) instead of raw.
+
+    Messages quote text from remote certificates and CT logs, so a raw escape
+    sequence or newline could repaint a terminal or forge extra log lines.
+    """
+    return "".join(
+        ch.encode("unicode_escape").decode() if unicodedata.category(ch) == "Cc" else ch
+        for ch in text
+    )
 
 
 class Severity(StrEnum):
@@ -153,6 +166,9 @@ class Event:
     severity: Severity
     message: str
     details: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.message = printable(self.message)
 
     def key(self) -> str:
         """Identity used to deduplicate repeated alerts across cycles."""
