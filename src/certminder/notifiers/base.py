@@ -12,10 +12,12 @@ class Notifier(ABC):
     """Deliver a batch of events to some destination."""
 
     @abstractmethod
-    def send(self, events: list[Event]) -> None:
-        """Deliver ``events``. Implementations must not raise on delivery
-        failure; they should swallow and report errors so one broken sink does
-        not abort the watch loop."""
+    def send(self, events: list[Event]) -> bool | None:
+        """Deliver ``events`` and return ``False`` if they were not delivered.
+
+        Implementations must not raise on delivery failure; they should report
+        the error and return ``False`` so the events are retried on the next
+        cycle. ``True`` or ``None`` means delivered."""
 
 
 class RemoteNotifier(Notifier):
@@ -36,10 +38,12 @@ class RemoteNotifier(Notifier):
         """Send ``events`` over the transport. Raise on failure."""
         raise NotImplementedError
 
-    def send(self, events: list[Event]) -> None:
+    def send(self, events: list[Event]) -> bool:
         if not events:
-            return
+            return True
         try:
             self._deliver(events)
         except self.delivery_errors as exc:
             print(f"certminder: {self.name} delivery failed: {exc}", file=sys.stderr)
+            return False
+        return True

@@ -25,10 +25,11 @@ class ConsoleNotifier(Notifier):
     def __init__(self, timestamp: bool = False):
         self.timestamp = timestamp
 
-    def send(self, events: list[Event]) -> None:
+    def send(self, events: list[Event]) -> bool:
         for event in events:
             stream = sys.stdout if event.severity is Severity.INFO else sys.stderr
             prefix = ""
             if self.timestamp:
                 prefix = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " "
             print(f"{prefix}{_ICON[event.severity]} {event.message}", file=stream)
+        return True

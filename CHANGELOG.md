@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Alerts are no longer lost when a notifier fails to deliver them. State was
+  saved before the notifiers ran, so an alert whose email or webhook failed was
+  already marked as notified and never sent again. Events are now delivered
+  first; if any notifier fails, the affected targets keep their previous state
+  and the same events are sent again on the next cycle (at-least-once). A sink
+  that did succeed may therefore see the same event twice. A startup report that
+  could not be delivered is retried as well. `Notifier.send` now returns `False`
+  on a delivery failure (`True` or `None` means delivered).
 - The daemon no longer dies on a single bad cycle. An unexpected error during a
   cycle is logged with its traceback and the loop carries on at the next
   interval; if the startup cycle fails, the startup report is kept for the next

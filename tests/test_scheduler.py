@@ -180,6 +180,44 @@ class _Broken:
         raise RuntimeError("bug in a notifier")
 
 
+class _Flaky:
+    """Fails to deliver until ``up`` is set, recording what it was sent."""
+
+    def __init__(self):
+        self.up = False
+        self.batches = []
+
+    def send(self, events):
+        self.batches.append(events)
+        return self.up
+
+
+def test_undelivered_events_are_sent_again_next_cycle(monkeypatch, tmp_path):
+    _problem(monkeypatch)
+    config = _config(tmp_path)
+    flaky = _Flaky()
+
+    first = run_once(config, notifiers=[flaky])
+    assert first.delivered is False
+    assert len(first.events) == 1
+
+    flaky.up = True
+    second = run_once(config, notifiers=[flaky])
+    assert second.delivered is True
+    assert [e.kind for e in second.events] == [e.kind for e in first.events]
+
+    # Delivered now: the alert is active and is not repeated.
+    assert run_once(config, notifiers=[flaky]).events == []
+
+
+def test_a_raising_notifier_counts_as_undelivered(monkeypatch, tmp_path, capsys):
+    _problem(monkeypatch)
+    config = _config(tmp_path)
+    assert run_once(config, notifiers=[_Broken()]).delivered is False
+    assert len(run_once(config, notifiers=[_Recorder()]).events) == 1
+    capsys.readouterr()
+
+
 def _problem(monkeypatch):
     monkeypatch.setattr(
         "certminder.scheduler.check_target",

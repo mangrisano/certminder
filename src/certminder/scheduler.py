@@ -25,6 +25,9 @@ class CycleReport:
 
     results: list[CheckResult] = field(default_factory=list)
     events: list[Event] = field(default_factory=list)
+    #: False when at least one notifier failed to deliver the events; their
+    #: targets keep their previous state so the events are sent again.
+    delivered: bool = True
 
     def to_dict(self) -> dict:
         """A JSON-serialisable summary of the cycle (for ``once --json``)."""
@@ -143,9 +146,12 @@ def run_once(
         )
 
     all_events: list[Event] = []
+    stored: dict[str, TargetState] = {}
     now = time.time()
     for result in results:
-        previous = TargetState() if report_all else store.get(result.target.name)
+        name = result.target.name
+        stored[name] = store.get(name)
+        previous = TargetState() if report_all else stored[name]
         # On a startup digest we re-show everything, so confirm immediately;
         # flap dampening only applies to ongoing change-driven cycles.
         threshold = 1 if report_all else config.failure_threshold
@@ -156,18 +162,23 @@ def run_once(
             renotify_after=config.renotify_after,
             failure_threshold=threshold,
         )
-        store.set(result.target.name, new_state)
+        store.set(name, new_state)
         all_events.extend(events)
 
+    # Deliver before persisting: if a sink fails, the targets that produced
+    # events keep their previous state, so the same events come up again next
+    # cycle (at-least-once) instead of being marked as notified and lost.
+    delivered = _deliver(notifiers, all_events) if all_events else True
+    if not delivered:
+        for name in {event.target_name for event in all_events}:
+            if name in stored:
+                store.set(name, stored[name])
     store.save()
 
     if config.prometheus_file is not None:
         write_prometheus(results, config.prometheus_file)
 
-    if all_events:
-        _deliver(notifiers, all_events)
-
-    return CycleReport(results=results, events=all_events)
+    return CycleReport(results=results, events=all_events, delivered=delivered)
 
 
 def _deliver(notifiers: list[Notifier], events: list[Event]) -> bool:
@@ -226,8 +237,9 @@ def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
     while True:
         report = _safe_run_once(config, notifiers, report_all=report_all)
         if report is not None:
-            # A failed startup cycle keeps the digest pending for the next one.
-            report_all = False
+            # A failed startup cycle, or a startup digest that could not be
+            # delivered, keeps the digest pending for the next cycle.
+            report_all = report_all and not report.delivered
             if config.heartbeat:
                 _log_heartbeat(report)
         time.sleep(config.interval)

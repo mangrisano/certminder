@@ -180,8 +180,24 @@ def test_email_send_swallows_errors(monkeypatch):
         raise OSError("connection refused")
 
     monkeypatch.setattr(n, "_deliver", boom)
-    # Must not raise even though delivery fails.
-    n.send([_event()])
+    # Must not raise even though delivery fails; it reports the failure.
+    assert n.send([_event()]) is False
+
+
+def test_filters_pass_through_the_delivery_result():
+    class _Failing(ConsoleNotifier):
+        def send(self, events):
+            return False
+
+    from certminder.notifiers import _KindFilterNotifier, _MinSeverityNotifier
+
+    kind_filter = _KindFilterNotifier(_Failing(), {EventKind.EXPIRING})
+    assert kind_filter.send([_event()]) is False
+    # Nothing to forward means nothing failed.
+    assert kind_filter.send([_kind_event(EventKind.EXPIRED, "x")]) is True
+    severity_filter = _MinSeverityNotifier(_Failing(), Severity.CRITICAL)
+    assert severity_filter.send([_event(Severity.WARNING)]) is True
+    assert severity_filter.send([_event(Severity.CRITICAL)]) is False
 
 
 def test_email_send_noop_on_empty(monkeypatch):

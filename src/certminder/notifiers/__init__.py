@@ -31,10 +31,9 @@ class _MinSeverityNotifier(Notifier):
         self._inner = inner
         self._threshold = _SEVERITY_RANK[min_severity]
 
-    def send(self, events: list[Event]) -> None:
+    def send(self, events: list[Event]) -> bool | None:
         kept = [e for e in events if _SEVERITY_RANK[e.severity] >= self._threshold]
-        if kept:
-            self._inner.send(kept)
+        return self._inner.send(kept) if kept else True
 
 
 class _KindFilterNotifier(Notifier):
@@ -44,10 +43,9 @@ class _KindFilterNotifier(Notifier):
         self._inner = inner
         self._kinds = kinds
 
-    def send(self, events: list[Event]) -> None:
+    def send(self, events: list[Event]) -> bool | None:
         kept = [e for e in events if e.kind in self._kinds]
-        if kept:
-            self._inner.send(kept)
+        return self._inner.send(kept) if kept else True
 
 
 def build_notifier(kind: str, options: dict) -> Notifier:
