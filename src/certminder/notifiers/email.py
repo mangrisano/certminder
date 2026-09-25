@@ -6,15 +6,8 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
-from certminder.models import Event, Severity
+from certminder.models import Event
 from certminder.notifiers.base import RemoteNotifier
-
-# Highest-to-lowest so the subject reflects the worst event in the batch.
-_SEVERITY_RANK = {
-    Severity.CRITICAL: 2,
-    Severity.WARNING: 1,
-    Severity.INFO: 0,
-}
 
 
 class EmailNotifier(RemoteNotifier):
@@ -73,7 +66,7 @@ class EmailNotifier(RemoteNotifier):
         self.order = order
 
     def _subject(self, events: list[Event]) -> str:
-        worst = max(events, key=lambda e: _SEVERITY_RANK[e.severity]).severity
+        worst = max(events, key=lambda e: e.severity.rank).severity
         count = len(events)
         noun = "event" if count == 1 else "events"
         return f"{self.subject_prefix} {worst.value.upper()}: {count} {noun}"
@@ -96,7 +89,7 @@ class EmailNotifier(RemoteNotifier):
         if self.order == "expiry":
             return sorted(events, key=self._expiry_order)
         if self.order == "severity":
-            return sorted(events, key=lambda e: -_SEVERITY_RANK[e.severity])
+            return sorted(events, key=lambda e: -e.severity.rank)
         return list(events)
 
     def _body(self, events: list[Event]) -> str:

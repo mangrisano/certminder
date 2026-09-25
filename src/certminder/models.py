@@ -18,6 +18,11 @@ class Severity(StrEnum):
     WARNING = "warning"
     CRITICAL = "critical"
 
+    @property
+    def rank(self) -> int:
+        """Position in the low-to-high order, for comparing severities."""
+        return list(Severity).index(self)
+
 
 class EventKind(StrEnum):
     """The kinds of change certminder reports.

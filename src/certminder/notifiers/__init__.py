@@ -21,18 +21,16 @@ REGISTRY: dict[str, type[Notifier]] = {
     "webhook": WebhookNotifier,
 }
 
-_SEVERITY_RANK = {Severity.INFO: 0, Severity.WARNING: 1, Severity.CRITICAL: 2}
-
 
 class _MinSeverityNotifier(Notifier):
     """Wrap a notifier so it only receives events at or above a threshold."""
 
     def __init__(self, inner: Notifier, min_severity: Severity):
         self._inner = inner
-        self._threshold = _SEVERITY_RANK[min_severity]
+        self._threshold = min_severity.rank
 
     def send(self, events: list[Event]) -> bool | None:
-        kept = [e for e in events if _SEVERITY_RANK[e.severity] >= self._threshold]
+        kept = [e for e in events if e.severity.rank >= self._threshold]
         return self._inner.send(kept) if kept else True
 
 
