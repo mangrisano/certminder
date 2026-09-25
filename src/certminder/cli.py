@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any
 
 from certminder import __version__
 from certminder.config import Config, ConfigError, load_config
@@ -102,7 +103,7 @@ def _cmd_report(config: Config, as_json: bool) -> int:
     if states is None:
         # State written before last_seen existed: fall back to the config.
         states = {target.name: store.get(target.name) for target in config.targets}
-    rows = []
+    rows: list[dict[str, Any]] = []
     for name in sorted(states):
         state = states[name]
         if state.active_alerts:

@@ -42,10 +42,12 @@ def load_environment(config_path: Path, secrets_file: str | None) -> dict[str, s
     else:
         env_path = config_path.parent / ".env"
     file_vars = dotenv_values(env_path) if env_path.is_file() else {}
+    values: dict[str, str] = {}
     for key, value in file_vars.items():
         if value is None:
             raise EnvError(f"{env_path}: {key!r} has no value (expected KEY=VALUE)")
-    return {**file_vars, **os.environ}
+        values[key] = value
+    return {**values, **os.environ}
 
 
 def interpolate(value: str, env: dict[str, str]) -> str:

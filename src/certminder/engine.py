@@ -54,8 +54,8 @@ def subprocess_timeout(target: Target) -> float:
 def _target_args(is_file: bool, target: Target) -> list[str]:
     """The positional/identifying args: what to inspect and how to reach it."""
     if is_file:
-        return ["--file", target.file]
-    return [target.host, "--port", str(target.port)]
+        return ["--file", target.display_host]
+    return [target.display_host, "--port", str(target.port)]
 
 
 def _output_args(target: Target) -> list[str]:

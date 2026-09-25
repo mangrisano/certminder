@@ -116,12 +116,16 @@ class Target:
     @property
     def display_host(self) -> str:
         """The host or file path this target identifies, for labels/metrics."""
-        return self.host if self.host is not None else self.file
+        source = self.host if self.host is not None else self.file
+        assert source is not None, "__post_init__ requires host or file"
+        return source
 
     @property
     def name(self) -> str:
         """A stable, human-readable identifier used as the state key."""
-        base = f"{self.host}:{self.port}" if self.host is not None else self.file
+        base = (
+            f"{self.host}:{self.port}" if self.host is not None else self.display_host
+        )
         return f"{base} ({self.label})" if self.label else base
 
 
