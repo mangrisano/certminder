@@ -340,16 +340,28 @@ def load_config(path: str | Path) -> Config:
 
     notifiers = _build_notifiers(data.get("notifiers"))
 
+    interval = parse_duration(data.get("interval", "6h"))
+    if interval <= 0:
+        raise ConfigError(f"'interval' must be positive, got {interval}s")
+    try:
+        concurrency = int(data.get("concurrency", 8))
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(
+            f"'concurrency' must be an integer, got {data['concurrency']!r}"
+        ) from exc
+    if concurrency < 1:
+        raise ConfigError(f"'concurrency' must be at least 1, got {concurrency}")
+
     return Config(
         targets=targets,
         notifiers=notifiers,
         discover_sources=discover_sources,
         certinspect_bin=data.get("certinspect_bin", "certinspect"),
-        interval=parse_duration(data.get("interval", "6h")),
+        interval=interval,
         state_file=Path(
             data.get("state_file", "~/.certminder/state.json")
         ).expanduser(),
-        concurrency=int(data.get("concurrency", 8)),
+        concurrency=concurrency,
         prometheus_file=(
             Path(data["prometheus_file"]).expanduser()
             if data.get("prometheus_file")

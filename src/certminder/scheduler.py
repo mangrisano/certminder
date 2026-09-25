@@ -231,7 +231,9 @@ def _log_heartbeat(report: CycleReport) -> None:
     )
 
 
-def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
+def run_loop(
+    config: Config, notifiers: list[Notifier] | None = None
+) -> None:  # pragma: no cover - long-running loop
     """Run inspection cycles forever, sleeping ``interval`` between them.
 
     The first cycle honours ``startup_report``: when enabled it reports every
@@ -239,7 +241,7 @@ def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
     of waiting for the next change. When ``heartbeat`` is on, a one-line summary
     is printed after each cycle so a quiet daemon is visibly alive.
     """
-    notifiers = build_notifiers(config)
+    notifiers = notifiers if notifiers is not None else build_notifiers(config)
     report_all = config.startup_report
     while True:
         report = _safe_run_once(config, notifiers, report_all=report_all)

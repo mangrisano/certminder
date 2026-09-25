@@ -71,6 +71,21 @@ def test_missing_targets_is_error(tmp_path):
         load_config(path)
 
 
+@pytest.mark.parametrize(
+    "setting,message",
+    [
+        ("interval: 0s", "'interval' must be positive"),
+        ("interval: -5", "'interval' must be positive"),
+        ("concurrency: 0", "'concurrency' must be at least 1"),
+        ("concurrency: many", "'concurrency' must be an integer"),
+    ],
+)
+def test_invalid_interval_or_concurrency_is_error(tmp_path, setting, message):
+    path = _write(tmp_path, f"{setting}\ntargets:\n  - host: example.com\n")
+    with pytest.raises(ConfigError, match=message):
+        load_config(path)
+
+
 def test_unknown_target_key_is_error(tmp_path):
     path = _write(
         tmp_path,

@@ -18,7 +18,7 @@ from certminder import __version__
 from certminder.config import Config, ConfigError, load_config
 from certminder.engine import check_target
 from certminder.models import Target
-from certminder.scheduler import run_loop, run_once
+from certminder.scheduler import build_notifiers, run_loop, run_once
 from certminder.state import StateStore
 
 
@@ -153,18 +153,26 @@ def main(argv: list[str] | None = None) -> int:
         print(f"certminder: {exc}", file=sys.stderr)
         return 2
 
+    if args.command == "report":
+        return _cmd_report(config, args.json)
+
+    # Build the notifiers now so a bad notifier setting is a config error, not
+    # a traceback in the middle of the first cycle.
+    try:
+        notifiers = build_notifiers(config)
+    except (TypeError, ValueError) as exc:
+        print(f"certminder: invalid notifier: {exc}", file=sys.stderr)
+        return 2
+
     if args.command == "once":
-        report = run_once(config)
+        report = run_once(config, notifiers)
         if args.json:
             print(json.dumps(report.to_dict(), indent=2))
         return 1 if report.events else 0
 
-    if args.command == "report":
-        return _cmd_report(config, args.json)
-
     if args.command == "run":
         try:
-            run_loop(config)
+            run_loop(config, notifiers)
         except KeyboardInterrupt:  # pragma: no cover
             print("certminder: stopped", file=sys.stderr)
         return 0

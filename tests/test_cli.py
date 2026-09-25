@@ -131,3 +131,26 @@ def test_check_requires_exactly_one_of_host_or_file(capsys):
 
     assert main(["check", "example.com", "--file", "/etc/certs/leaf.pem"]) == 2
     assert "exactly one" in capsys.readouterr().err
+
+
+def test_once_rejects_an_invalid_notifier_cleanly(tmp_path, capsys, monkeypatch):
+    def unexpected(*a, **k):
+        raise AssertionError("no cycle should run with a bad notifier")
+
+    monkeypatch.setattr(subprocess, "run", unexpected)
+    config = tmp_path / "certminder.yml"
+    config.write_text(
+        "targets:\n"
+        "  - host: example.com\n"
+        "notifiers:\n"
+        "  - type: email\n"
+        "    host: smtp.example.com\n"
+        "    to: ops@example.com\n"
+        "    from_addr: certminder@example.com\n"
+        "    use_tls: false\n"
+        "    username: bot\n"
+        "    password: secret\n"
+        f"state_file: {tmp_path / 'state.json'}\n"
+    )
+    assert main(["once", "-c", str(config)]) == 2
+    assert "clear text" in capsys.readouterr().err

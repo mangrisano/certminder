@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Configuration mistakes are caught before the first cycle. `interval` must be
+  positive and `concurrency` at least 1 (a zero `concurrency` used to crash the
+  cycle, a zero `interval` made the daemon spin without pause), and an invalid
+  notifier setting now exits with code 2 and a clear message instead of a
+  traceback in the middle of the first cycle.
 - `certminder report` now covers every target of the last cycle, including the
   hosts found through `discover`. It used to list only the targets written in
   the config, so a problem on a discovered host never showed up there. Each
