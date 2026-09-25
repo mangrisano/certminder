@@ -13,7 +13,14 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
-from certminder.models import CheckResult, Event, EventKind, Severity
+from certminder.models import (
+    CheckResult,
+    Event,
+    EventKind,
+    Severity,
+    alert_key,
+    alert_kind,
+)
 from certminder.state import TargetState
 
 
@@ -168,7 +175,7 @@ _RESOLVED_MESSAGE: dict[str, str] = {
 
 def _resolved_event(name: str, key: str) -> Event:
     """Build the INFO event announcing that one specific problem has cleared."""
-    kind_value = key.rsplit("|", 1)[-1]
+    kind_value = alert_kind(key)
     message = _RESOLVED_MESSAGE.get(
         kind_value, f"{kind_value.replace('_', ' ')} cleared"
     )
@@ -214,7 +221,7 @@ def _unreachable_result(
     (unknown now) and re-raised when the host returns.
     """
     events: list[Event] = []
-    key = f"{name}|{EventKind.UNREACHABLE.value}"
+    key = alert_key(name, EventKind.UNREACHABLE)
     confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
     if not confirmed:
         # Within the flap window: stay silent, just remember the count.

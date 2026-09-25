@@ -17,7 +17,7 @@ import sys
 from certminder import __version__
 from certminder.config import Config, ConfigError, load_config
 from certminder.engine import check_target
-from certminder.models import Target
+from certminder.models import Target, alert_kind
 from certminder.scheduler import build_notifiers, run_loop, run_once
 from certminder.state import StateStore
 
@@ -110,9 +110,7 @@ def _cmd_report(config: Config, as_json: bool) -> int:
                 {
                     "target": name,
                     "status": state.status,
-                    "problems": sorted(
-                        key.rsplit("|", 1)[-1] for key in state.active_alerts
-                    ),
+                    "problems": sorted(alert_kind(key) for key in state.active_alerts),
                 }
             )
     total = len(states)

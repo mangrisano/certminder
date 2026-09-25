@@ -139,4 +139,17 @@ class Event:
 
     def key(self) -> str:
         """Identity used to deduplicate repeated alerts across cycles."""
-        return f"{self.target_name}|{self.kind.value}"
+        return alert_key(self.target_name, self.kind)
+
+
+def alert_key(target_name: str, kind: EventKind) -> str:
+    """The key an active alert is stored under: ``<target>|<kind>``."""
+    return f"{target_name}|{kind.value}"
+
+
+def alert_kind(key: str) -> str:
+    """The kind value of an alert key built by :func:`alert_key`.
+
+    Split from the right: a target name may itself contain ``|``.
+    """
+    return key.rsplit("|", 1)[-1]
