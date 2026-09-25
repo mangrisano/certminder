@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-09-25
+
 ### Fixed
 
 - `verify: false` now actually turns chain and revocation checks off. Since
@@ -359,7 +361,8 @@ not sign the leaf`), so the notification says _why_ the chain failed and how
 - CLI subcommands: `once`, `run`, `check`.
 - Test suite covering config, engine (mocked), evaluator and state.
 
-[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/mangrisano/certminder/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/mangrisano/certminder/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/mangrisano/certminder/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/mangrisano/certminder/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mangrisano/certminder/compare/v2.2.1...v2.3.0
