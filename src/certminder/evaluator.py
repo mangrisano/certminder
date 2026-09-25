@@ -11,7 +11,7 @@ single ``RECOVERED`` event is emitted per problem that clears.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from dataclasses import dataclass
 
 from certminder.models import (
     CheckResult,
@@ -203,26 +203,57 @@ def _confirm(
     return count >= threshold, count
 
 
-def _unreachable_result(
-    name: str,
-    result: CheckResult,
-    previous: TargetState,
-    active: set[str],
-    prev_notified: dict[str, float],
-    expected: set[str],
-    failure_threshold: int,
-    due: Callable[[str], bool],
-    now: float,
-) -> tuple[list[Event], TargetState]:
+@dataclass(frozen=True)
+class _Cycle:
+    """What one evaluation needs to know besides the problems themselves."""
+
+    result: CheckResult
+    previous: TargetState
+    now: float
+    renotify_after: int | None
+    failure_threshold: int
+
+    @property
+    def name(self) -> str:
+        return self.result.target.name
+
+    @property
+    def expected(self) -> set[str]:
+        return set(self.result.target.expect or ())
+
+    @property
+    def active(self) -> set[str]:
+        return set(self.previous.active_alerts)
+
+    def due(self, key: str) -> bool:
+        """Emit this key now? True when new, or its renotify interval elapsed."""
+        if key not in self.previous.active_alerts:
+            return True
+        last = self.previous.notified_at.get(key)
+        return (
+            self.renotify_after is not None
+            and last is not None
+            and self.now - last >= self.renotify_after
+        )
+
+    def confirm(self, key: str) -> tuple[bool, int]:
+        return _confirm(key, self.active, self.previous.pending, self.failure_threshold)
+
+    def last_notified(self, key: str) -> float:
+        return self.previous.notified_at.get(key, self.now)
+
+
+def _unreachable_result(cycle: _Cycle) -> tuple[list[Event], TargetState]:
     """Handle a target that could not be assessed this cycle.
 
     The certificate cannot be assessed, so surface only ``UNREACHABLE``,
     deduplicated (subject to renotify). Any per-problem alerts are dropped
     (unknown now) and re-raised when the host returns.
     """
+    result, previous, name = cycle.result, cycle.previous, cycle.name
     events: list[Event] = []
     key = alert_key(name, EventKind.UNREACHABLE)
-    confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
+    confirmed, count = cycle.confirm(key)
     if not confirmed:
         # Within the flap window: stay silent, just remember the count.
         return events, TargetState(
@@ -230,7 +261,7 @@ def _unreachable_result(
             status=result.status,
             pending={key: count},
         )
-    if EventKind.UNREACHABLE.value not in expected and due(key):
+    if EventKind.UNREACHABLE.value not in cycle.expected and cycle.due(key):
         events.append(
             Event(
                 target_name=name,
@@ -240,9 +271,9 @@ def _unreachable_result(
                 details={"error": result.error, "exit_code": result.exit_code},
             )
         )
-        notified = now
+        notified = cycle.now
     else:
-        notified = prev_notified.get(key, now)
+        notified = cycle.last_notified(key)
     return events, TargetState(
         fingerprint=previous.fingerprint,
         status=result.status,
@@ -271,36 +302,16 @@ def evaluate(
     cycles before it alerts, so a one-cycle blip is dampened.
     """
     now = time.time() if now is None else now
-    events: list[Event] = []
-    name = result.target.name
-    expected = set(result.target.expect or ())
-    active = set(previous.active_alerts)
-    prev_notified = previous.notified_at
-
-    def _due(key: str) -> bool:
-        """Emit this key now? True when new, or its renotify interval elapsed."""
-        if key not in active:
-            return True
-        last = prev_notified.get(key)
-        return (
-            renotify_after is not None
-            and last is not None
-            and now - last >= renotify_after
-        )
+    cycle = _Cycle(result, previous, now, renotify_after, failure_threshold)
 
     # Unreachable: no per-problem evaluation is possible this cycle.
     if not result.reachable:
-        return _unreachable_result(
-            name,
-            result,
-            previous,
-            active,
-            prev_notified,
-            expected,
-            failure_threshold,
-            _due,
-            now,
-        )
+        return _unreachable_result(cycle)
+
+    events: list[Event] = []
+    name = cycle.name
+    expected = cycle.expected
+    active = cycle.active
 
     # Fingerprint change: report every rotation (transient, not tracked).
     if (
@@ -329,7 +340,7 @@ def evaluate(
     new_active: set[str] = set()
     new_pending: dict[str, int] = {}
     for key in by_key:
-        confirmed, count = _confirm(key, active, previous.pending, failure_threshold)
+        confirmed, count = cycle.confirm(key)
         if confirmed:
             new_active.add(key)
         else:
@@ -342,11 +353,11 @@ def evaluate(
     force_full = bool(new_active - active)
     notified: dict[str, float] = {}
     for key in sorted(new_active):
-        if force_full or _due(key):
+        if force_full or cycle.due(key):
             events.append(by_key[key])
             notified[key] = now
         else:
-            notified[key] = prev_notified.get(key, now)
+            notified[key] = cycle.last_notified(key)
 
     events.extend(_resolved_event(name, key) for key in sorted(active - new_active))
 
