@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- The email notifier refuses to start with `username`/`password` when both
+  `use_tls` and `use_ssl` are off. It used to log in over the plain connection,
+  sending the SMTP credentials in clear text. An unauthenticated relay can still
+  run without TLS.
+
 ### Fixed
 
 - Slow but healthy endpoints are no longer reported as unreachable. certinspect

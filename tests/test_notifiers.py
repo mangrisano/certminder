@@ -173,6 +173,26 @@ def test_email_rejects_invalid_order():
         EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", order="bogus")
 
 
+@pytest.mark.parametrize(
+    "creds", [{"username": "u", "password": "p"}, {"password": "p"}]
+)
+def test_email_refuses_credentials_without_tls(creds):
+    with pytest.raises(ValueError, match="clear text"):
+        EmailNotifier(
+            host="smtp", to="a@b.c", from_addr="c@d.e", use_tls=False, **creds
+        )
+
+
+def test_email_allows_credentials_over_tls_or_ssl_and_plain_relay():
+    creds = {"username": "u", "password": "p"}
+    EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", **creds)
+    EmailNotifier(
+        host="smtp", to="a@b.c", from_addr="c@d.e", use_tls=False, use_ssl=True, **creds
+    )
+    # An unauthenticated relay may still run without TLS.
+    EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e", use_tls=False)
+
+
 def test_email_send_swallows_errors(monkeypatch):
     n = EmailNotifier(host="smtp", to="a@b.c", from_addr="c@d.e")
 

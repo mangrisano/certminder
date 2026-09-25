@@ -55,6 +55,11 @@ class EmailNotifier(RemoteNotifier):
                 f"email notifier 'order' must be one of {list(self.ORDERS)}, "
                 f"got {order!r}"
             )
+        if (username or password) and not (use_tls or use_ssl):
+            raise ValueError(
+                "email notifier would send its credentials in clear text: "
+                "enable 'use_tls' or 'use_ssl', or drop 'username'/'password'"
+            )
         self.host = host
         self.recipients = [to] if isinstance(to, str) else list(to)
         self.from_addr = from_addr
