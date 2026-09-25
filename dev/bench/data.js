@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790371642494,
+  "lastUpdate": 1790372647952,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -646,6 +646,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0005265993204402883",
             "extra": "mean: 6.056061306666436 msec\nrounds: 150"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "4250d50109341a3da3e369f030a3887b2f97efc8",
+          "message": "ci: type-check with mypy\n\nRun mypy on src in CI and in the publish gate (mypy and the PyYAML\nstubs join the dev extra).",
+          "timestamp": "2026-09-25T23:43:45+02:00",
+          "tree_id": "82dd67d3720394013ba3518b8f1eeee9b59e93aa",
+          "url": "https://github.com/mangrisano/certminder/commit/4250d50109341a3da3e369f030a3887b2f97efc8"
+        },
+        "date": 1790372646509,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 16278.759536079226,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000005360589268716909",
+            "extra": "mean: 61.429742099431 usec\nrounds: 190"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 149.57383145327046,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0004396564076933796",
+            "extra": "mean: 6.685661457515166 msec\nrounds: 153"
           }
         ]
       }
