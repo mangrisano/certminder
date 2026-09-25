@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- A notifier entry without `type` no longer prints its values in the error
+  message. `${VAR}` references are resolved before validation, so the message
+  used to show the SMTP password or the Slack webhook URL in clear text on
+  stderr and in the container logs. It now lists only the key names.
+
 ## [2.5.0] - 2026-09-25
 
 ### Security

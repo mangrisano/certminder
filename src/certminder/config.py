@@ -228,9 +228,11 @@ def _build_discover_sources(
 def _build_notifiers(raw_notifiers: list[dict[str, Any]]) -> list[NotifierConfig]:
     """Build the config's ``notifiers:`` entries, defaulting to a console sink."""
     notifiers = []
-    for entry in raw_notifiers or [{"type": "console"}]:
-        if "type" not in entry:
-            raise ConfigError(f"notifier is missing 'type': {entry!r}")
+    for index, entry in enumerate(raw_notifiers or [{"type": "console"}], start=1):
+        if not isinstance(entry, dict) or "type" not in entry:
+            # Only key names: the values may be secrets already resolved from ${VAR}.
+            keys = ", ".join(sorted(entry)) if isinstance(entry, dict) else "none"
+            raise ConfigError(f"notifier #{index} is missing 'type' (keys: {keys})")
         options = {k: v for k, v in entry.items() if k != "type"}
         notifiers.append(NotifierConfig(type=entry["type"], options=options))
     return notifiers

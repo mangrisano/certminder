@@ -851,3 +851,23 @@ def test_no_targets_and_no_discover_is_error(tmp_path):
     path = _write(tmp_path, "interval: 1h\n")
     with pytest.raises(ConfigError):
         load_config(path)
+
+
+def test_notifier_error_does_not_echo_resolved_secrets(tmp_path, monkeypatch):
+    monkeypatch.setenv("SMTP_PASS", "s3cr3t-value")
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: example.com
+        notifiers:
+          - host: smtp.example.com
+            password: ${SMTP_PASS}
+        """,
+    )
+    with pytest.raises(ConfigError) as excinfo:
+        load_config(path)
+    message = str(excinfo.value)
+    assert "s3cr3t-value" not in message
+    assert "notifier #1 is missing 'type'" in message
+    assert "password" in message
