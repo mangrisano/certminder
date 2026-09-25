@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import time
 import traceback
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from datetime import datetime
@@ -17,6 +18,11 @@ from certminder.metrics import write_prometheus
 from certminder.models import CheckResult, DiscoverSource, Event, Status, Target
 from certminder.notifiers import Notifier, build_notifier
 from certminder.state import StateStore, TargetState
+
+#: Inspect one target: ``(target, certinspect_bin) -> CheckResult``.
+Check = Callable[[Target, str], CheckResult]
+#: List a domain's hostnames: ``(domain, timeout, certinspect_bin) -> names``.
+Discover = Callable[[str, float, str], list[str]]
 
 # How long the state of a target that is no longer checked (removed from the
 # config, or a discovered host that stopped showing up) is kept. A week rides
@@ -71,19 +77,21 @@ def build_notifiers(config: Config) -> list[Notifier]:
 
 
 def _resolve_one_source(
-    source: DiscoverSource, bin_path: str
+    source: DiscoverSource, bin_path: str, discover: Discover
 ) -> tuple[DiscoverSource, list[str], str | None]:
     try:
         return (
             source,
-            discover_hostnames(source.domain, source.discover_timeout, bin_path),
+            discover(source.domain, source.discover_timeout, bin_path),
             None,
         )
     except DiscoveryError as err:
         return source, [], str(err)
 
 
-def resolve_discovered_targets(config: Config) -> list[Target]:
+def resolve_discovered_targets(
+    config: Config, discover: Discover = discover_hostnames
+) -> list[Target]:
     """Expand ``config.discover_sources`` into host targets for this cycle.
 
     Queried fresh every cycle (not cached from config-load time) so a domain's
@@ -97,7 +105,7 @@ def resolve_discovered_targets(config: Config) -> list[Target]:
     with ThreadPoolExecutor(max_workers=workers) as pool:
         outcomes = list(
             pool.map(
-                lambda s: _resolve_one_source(s, config.certinspect_bin),
+                lambda s: _resolve_one_source(s, config.certinspect_bin, discover),
                 config.discover_sources,
             )
         )
@@ -110,7 +118,9 @@ def resolve_discovered_targets(config: Config) -> list[Target]:
     return targets
 
 
-def _all_targets(config: Config) -> list[Target]:
+def _all_targets(
+    config: Config, discover: Discover = discover_hostnames
+) -> list[Target]:
     """Static targets plus this cycle's discovered ones, deduped by name.
 
     A discovered host that coincidentally matches a static target's name (same
@@ -119,7 +129,7 @@ def _all_targets(config: Config) -> list[Target]:
     """
     targets = list(config.targets)
     known_names = {t.name for t in targets}
-    for target in resolve_discovered_targets(config):
+    for target in resolve_discovered_targets(config, discover):
         if target.name not in known_names:
             targets.append(target)
             known_names.add(target.name)
@@ -131,29 +141,33 @@ def run_once(
     notifiers: list[Notifier] | None = None,
     *,
     report_all: bool = False,
+    check: Check = check_target,
+    discover: Discover = discover_hostnames,
+    clock: Callable[[], float] = time.time,
 ) -> CycleReport:
     """Run a single inspection cycle and return its results and events.
 
     With ``report_all`` set, every currently-active problem is reported as if
     first seen (the stored state is ignored for event generation, but still
     updated), so a fresh start can surface the complete current picture instead
-    of staying silent until something changes.
+    of staying silent until something changes. ``check``, ``discover`` and
+    ``clock`` default to the real certinspect calls and wall clock.
     """
     notifiers = notifiers if notifiers is not None else build_notifiers(config)
     store = StateStore(config.state_file)
-    targets = _all_targets(config)
+    targets = _all_targets(config, discover)
 
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         results = list(
             pool.map(
-                lambda t: check_target(t, config.certinspect_bin),
+                lambda t: check(t, config.certinspect_bin),
                 targets,
             )
         )
 
     all_events: list[Event] = []
     stored: dict[str, TargetState] = {}
-    now = time.time()
+    now = clock()
     for result in results:
         name = result.target.name
         stored[name] = store.get(name)
@@ -208,12 +222,10 @@ def _deliver(notifiers: list[Notifier], events: list[Event]) -> bool:
     return delivered
 
 
-def _safe_run_once(
-    config: Config, notifiers: list[Notifier], *, report_all: bool
-) -> CycleReport | None:
+def _safe_run_once(cycle: Callable[[], CycleReport]) -> CycleReport | None:
     """Run one cycle, logging (not raising) any error so the daemon survives."""
     try:
-        return run_once(config, notifiers, report_all=report_all)
+        return cycle()
     except Exception:
         print("certminder: cycle failed, retrying next interval", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
@@ -244,7 +256,9 @@ def run_loop(
     notifiers = notifiers if notifiers is not None else build_notifiers(config)
     report_all = config.startup_report
     while True:
-        report = _safe_run_once(config, notifiers, report_all=report_all)
+        report = _safe_run_once(
+            lambda: run_once(config, notifiers, report_all=report_all)
+        )
         if report is not None:
             # A failed startup cycle, or a startup digest that could not be
             # delivered, keeps the digest pending for the next cycle.
