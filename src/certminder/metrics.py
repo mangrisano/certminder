@@ -105,4 +105,6 @@ def write_prometheus(
     results: list[CheckResult], path: str | Path, *, now: float | None = None
 ) -> None:
     """Atomically write the Prometheus metrics for ``results`` to ``path``."""
-    atomic_write(path, render(results, now=now))
+    # World-readable: the node_exporter textfile collector usually runs as
+    # another user. The metrics carry nothing secret.
+    atomic_write(path, render(results, now=now), mode=0o644)

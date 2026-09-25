@@ -7,14 +7,21 @@ import tempfile
 from pathlib import Path
 
 
-def atomic_write(path: str | Path, text: str) -> None:
-    """Write ``text`` to ``path`` via a temp file + rename in the same directory."""
+def atomic_write(path: str | Path, text: str, mode: int = 0o600) -> None:
+    """Write ``text`` to ``path`` via a temp file + rename in the same directory.
+
+    The file gets permission ``mode`` (private by default) and is flushed to
+    disk before the rename, so a crash cannot leave an empty file in its place.
+    """
     path = Path(path).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as fh:
             fh.write(text)
+            fh.flush()
+            os.fchmod(fh.fileno(), mode)
+            os.fsync(fh.fileno())
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):

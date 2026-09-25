@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Prometheus file is written world-readable (`0644`) again, so a
+  node_exporter textfile collector running as another user can read it; it had
+  inherited the private `0600` mode meant for the state file. Both files are now
+  flushed to disk before they replace the old one, so a crash cannot leave an
+  empty file behind.
 - Configuration mistakes are caught before the first cycle. `interval` must be
   positive and `concurrency` at least 1 (a zero `concurrency` used to crash the
   cycle, a zero `interval` made the daemon spin without pause), and an invalid
