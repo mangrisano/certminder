@@ -11,27 +11,43 @@ instances.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
+import sys
 from typing import Any
+
+# Letters, digits, '-' and '_' per label; no label starts or ends with '-'. A
+# CT-logged name is untrusted input, and one starting with '-' would reach
+# certinspect as a command-line option.
+_HOSTNAME_RE = re.compile(
+    r"(?=.{1,253}$)(?!-)[a-z0-9_-]{1,63}(?<!-)(?:\.(?!-)[a-z0-9_-]{1,63}(?<!-))*",
+    re.IGNORECASE,
+)
 
 
 class DiscoveryError(RuntimeError):
     """Raised when a --discover-only query fails or returns unusable output."""
 
 
-def _extract_hostnames(records: list[dict[str, Any]]) -> list[str]:
+def _extract_hostnames(records: list[dict[str, Any]]) -> tuple[list[str], int]:
     """Return the sorted, deduplicated concrete hostnames in ``records``.
 
     Each record's ``hostnames`` list may include wildcards (``*.example.com``);
     those name no single host to connect to and are dropped, matching
-    certinspect's own ``--discover`` (non-``--discover-only``) behaviour.
+    certinspect's own ``--discover`` (non-``--discover-only``) behaviour. Names
+    that are not valid hostnames are dropped too; their count is returned.
     """
     names: set[str] = set()
+    invalid: set[str] = set()
     for record in records:
         for name in record.get("hostnames") or []:
-            if isinstance(name, str) and "*" not in name:
+            if not isinstance(name, str) or "*" in name:
+                continue
+            if _HOSTNAME_RE.fullmatch(name):
                 names.add(name)
-    return sorted(names)
+            else:
+                invalid.add(name)
+    return sorted(names), len(invalid)
 
 
 def discover_hostnames(
@@ -74,4 +90,11 @@ def discover_hostnames(
     if not isinstance(records, list):
         raise DiscoveryError(f"unexpected discovery output for {domain}")
 
-    return _extract_hostnames(records)
+    hostnames, invalid = _extract_hostnames(records)
+    if invalid:
+        print(
+            f"certminder: discovery for {domain} skipped {invalid} "
+            "name(s) that are not valid hostnames",
+            file=sys.stderr,
+        )
+    return hostnames

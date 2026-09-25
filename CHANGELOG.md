@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Hostnames found through `discover` must now be valid DNS names. A name
+  logged in Certificate Transparency is untrusted input and went straight onto
+  certinspect's command line, where one starting with `-` (for example
+  `-v.example.com`) was parsed as an option and raised a false "unreachable"
+  alert. Invalid names are skipped with a warning.
 - Text taken from remote certificates and CT logs can no longer drive the
   console or Slack. Alert messages quote issuer names, chain errors and
   hostnames that a monitored server (or a certificate logged for your domain)

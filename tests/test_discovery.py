@@ -29,6 +29,27 @@ def test_discover_hostnames_drops_wildcards_and_dedupes(monkeypatch):
     assert hosts == ["api.example.com", "www.example.com"]
 
 
+def test_discover_hostnames_drops_names_that_are_not_hostnames(monkeypatch, capsys):
+    records = [
+        {
+            "hostnames": [
+                "ok.example.com",
+                "_dmarc.example.com",
+                "xn--caf-dma.example.com",
+                "-v.example.com",
+                "--export=/tmp/x.example.com",
+                "bad name.example.com",
+                "evil\x1b[2J.example.com",
+                "a-.example.com",
+            ]
+        }
+    ]
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(records), 0))
+    hosts = discover_hostnames("example.com", 30.0)
+    assert hosts == ["_dmarc.example.com", "ok.example.com", "xn--caf-dma.example.com"]
+    assert "skipped 5 name(s)" in capsys.readouterr().err
+
+
 def test_discover_hostnames_uses_certinspect_bin(monkeypatch):
     seen = {}
 
