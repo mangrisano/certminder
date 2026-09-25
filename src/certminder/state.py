@@ -9,6 +9,7 @@ cycle).
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,9 +61,20 @@ class StateStore:
             data = json.loads(self.path.read_text())
         except (json.JSONDecodeError, OSError):
             return
-        self._states = {
-            name: TargetState.from_dict(entry) for name, entry in data.items()
-        }
+        if not isinstance(data, dict):
+            print(
+                f"certminder: ignoring malformed state file {self.path}",
+                file=sys.stderr,
+            )
+            return
+        for name, entry in data.items():
+            try:
+                self._states[name] = TargetState.from_dict(entry)
+            except (AttributeError, TypeError, ValueError):
+                print(
+                    f"certminder: ignoring malformed state for {name!r}",
+                    file=sys.stderr,
+                )
 
     def get(self, name: str) -> TargetState:
         """Return the stored state for ``name`` (empty if never seen)."""

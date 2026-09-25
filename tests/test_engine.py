@@ -245,6 +245,24 @@ def test_missing_binary(monkeypatch):
     assert "not found" in (result.error or "")
 
 
+def test_unrunnable_binary_is_an_error_result(monkeypatch):
+    def boom(*a, **k):
+        raise PermissionError("permission denied")
+
+    monkeypatch.setattr(subprocess, "run", boom)
+    result = check_target(Target(host="example.com"))
+    assert result.status == "ERROR"
+    assert result.reachable is False
+    assert "permission denied" in (result.error or "")
+
+
+def test_check_ignores_a_non_object_json_entry(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(["oops"]), 0))
+    result = check_target(Target(host="example.com"))
+    assert result.status == "VALID"
+    assert result.raw == {}
+
+
 def test_check_file_target(monkeypatch):
     info = [{"days_to_expire": 90, "fingerprint_sha256": "AA:BB"}]
     monkeypatch.setattr(subprocess, "run", _fake_run(json.dumps(info), 0))

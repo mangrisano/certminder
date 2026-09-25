@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -164,10 +165,41 @@ def run_once(
         write_prometheus(results, config.prometheus_file)
 
     if all_events:
-        for notifier in notifiers:
-            notifier.send(all_events)
+        _deliver(notifiers, all_events)
 
     return CycleReport(results=results, events=all_events)
+
+
+def _deliver(notifiers: list[Notifier], events: list[Event]) -> bool:
+    """Send ``events`` to every notifier; return True when all delivered them.
+
+    A notifier that raises (a bug, not a delivery failure it reports itself)
+    is logged and skipped so the remaining sinks still get the events.
+    """
+    delivered = True
+    for notifier in notifiers:
+        try:
+            if notifier.send(events) is False:
+                delivered = False
+        except Exception as exc:
+            print(
+                f"certminder: {type(notifier).__name__} failed: {exc!r}",
+                file=sys.stderr,
+            )
+            delivered = False
+    return delivered
+
+
+def _safe_run_once(
+    config: Config, notifiers: list[Notifier], *, report_all: bool
+) -> CycleReport | None:
+    """Run one cycle, logging (not raising) any error so the daemon survives."""
+    try:
+        return run_once(config, notifiers, report_all=report_all)
+    except Exception:
+        print("certminder: cycle failed, retrying next interval", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        return None
 
 
 def _log_heartbeat(report: CycleReport) -> None:
@@ -192,8 +224,10 @@ def run_loop(config: Config) -> None:  # pragma: no cover - long-running loop
     notifiers = build_notifiers(config)
     report_all = config.startup_report
     while True:
-        report = run_once(config, notifiers, report_all=report_all)
-        report_all = False
-        if config.heartbeat:
-            _log_heartbeat(report)
+        report = _safe_run_once(config, notifiers, report_all=report_all)
+        if report is not None:
+            # A failed startup cycle keeps the digest pending for the next one.
+            report_all = False
+            if config.heartbeat:
+                _log_heartbeat(report)
         time.sleep(config.interval)

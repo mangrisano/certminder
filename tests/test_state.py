@@ -2,7 +2,36 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from certminder.state import StateStore, TargetState
+
+
+@pytest.mark.parametrize("content", ["[]", '"text"', "42"])
+def test_non_object_state_file_is_ignored(tmp_path, capsys, content):
+    path = tmp_path / "state.json"
+    path.write_text(content)
+    store = StateStore(path)
+    assert store.get("example.com:443") == TargetState()
+    assert "malformed state file" in capsys.readouterr().err
+
+
+def test_malformed_entry_is_skipped_others_kept(tmp_path, capsys):
+    path = tmp_path / "state.json"
+    path.write_text(
+        json.dumps(
+            {
+                "bad:443": "not an object",
+                "ok:443": {"status": "VALID", "active_alerts": ["ok:443|expiring"]},
+            }
+        )
+    )
+    store = StateStore(path)
+    assert store.get("ok:443").active_alerts == ["ok:443|expiring"]
+    assert store.get("bad:443") == TargetState()
+    assert "'bad:443'" in capsys.readouterr().err
 
 
 def test_roundtrip(tmp_path):

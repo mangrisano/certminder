@@ -165,3 +165,47 @@ def test_run_once_inspects_discovered_targets(monkeypatch, tmp_path):
     )
     report = run_once(config, notifiers=[])
     assert [r.target.host for r in report.results] == ["shadow.example.com"]
+
+
+class _Recorder:
+    def __init__(self):
+        self.batches = []
+
+    def send(self, events):
+        self.batches.append(events)
+
+
+class _Broken:
+    def send(self, events):
+        raise RuntimeError("bug in a notifier")
+
+
+def _problem(monkeypatch):
+    monkeypatch.setattr(
+        "certminder.scheduler.check_target",
+        lambda t, _bin: make_result(
+            t, "EXPIRED", days_to_expire=-3, raw={"status": "EXPIRED"}
+        ),
+    )
+
+
+def test_a_broken_notifier_does_not_stop_the_others(monkeypatch, tmp_path, capsys):
+    _problem(monkeypatch)
+    recorder = _Recorder()
+    report = run_once(_config(tmp_path), notifiers=[_Broken(), recorder])
+    assert len(report.events) == 1
+    assert recorder.batches == [report.events]
+    assert "bug in a notifier" in capsys.readouterr().err
+
+
+def test_safe_run_once_logs_and_survives_a_failed_cycle(monkeypatch, tmp_path, capsys):
+    from certminder.scheduler import _safe_run_once
+
+    def explode(t, _bin):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr("certminder.scheduler.check_target", explode)
+    assert _safe_run_once(_config(tmp_path), [], report_all=False) is None
+    err = capsys.readouterr().err
+    assert "cycle failed" in err
+    assert "RuntimeError: unexpected" in err

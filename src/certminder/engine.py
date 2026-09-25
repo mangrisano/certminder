@@ -182,12 +182,20 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
             exit_code=124,
             error="certinspect timed out",
         )
+    except OSError as err:
+        return CheckResult(
+            target=target,
+            reachable=False,
+            status="ERROR",
+            exit_code=126,
+            error=f"could not run certinspect: {err}",
+        )
 
     info: dict[str, Any] = {}
     if proc.returncode in _ANALYSED_CODES:
         try:
             parsed = json.loads(proc.stdout or "[]")
-            if isinstance(parsed, list) and parsed:
+            if isinstance(parsed, list) and parsed and isinstance(parsed[0], dict):
                 info = parsed[0]
         except json.JSONDecodeError:
             info = {}

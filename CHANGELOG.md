@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The daemon no longer dies on a single bad cycle. An unexpected error during a
+  cycle is logged with its traceback and the loop carries on at the next
+  interval; if the startup cycle fails, the startup report is kept for the next
+  one. A notifier that raises no longer stops the remaining notifiers.
+- A corrupt state file (valid JSON but not an object, or a malformed entry) is
+  ignored with a warning instead of crashing every start. A certinspect binary
+  that exists but cannot be run is reported as an error for that target instead
+  of aborting the whole cycle.
+
 ## [2.4.2] - 2026-09-25
 
 ### Fixed
