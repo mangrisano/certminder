@@ -43,7 +43,7 @@ heartbeat: true
 # Applied to every target unless the target overrides them.
 defaults:
   port: 443
-  verify: true        # run certinspect --verify (chain + OCSP/CRL revocation)
+  verify: true        # chain + OCSP/CRL revocation; false runs certinspect --no-verify
   days: 30            # EXPIRING window (certinspect --days)
   critical_days: 15   # CRITICAL window (certinspect --critical-days)
   timeout: 5

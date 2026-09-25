@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `verify: false` now actually turns chain and revocation checks off. Since
+  certinspect 2.0 verifies by default, certminder only ever passed `--verify`
+  and never `--no-verify`, so a target with `verify: false` (an internal or
+  self-signed host) still raised a critical `chain_untrusted` alert every
+  cycle. `verify: false` combined with `cafile`, `capath` or
+  `require_revocation_check` is now rejected when the config is loaded,
+  instead of showing up as an unreachable target.
+
 ### Changed
 
 - Require `certinspect>=2.4.5` (was `>=2.2.0`). It brings authenticated OCSP/CRL

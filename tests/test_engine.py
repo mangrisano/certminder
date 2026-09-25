@@ -20,6 +20,13 @@ def test_build_command_includes_flags():
     assert "8443" in cmd
 
 
+def test_build_command_disables_verification_with_no_verify():
+    # certinspect verifies by default: omitting --verify alone would not stop it.
+    cmd = build_command("certinspect", Target(host="example.com", verify=False))
+    assert "--no-verify" in cmd
+    assert "--verify" not in cmd
+
+
 def test_build_command_pins_legacy_json_schema():
     # certinspect >= 2.0 defaults to schema 2; certminder must request schema 1.
     cmd = build_command("certinspect", Target(host="example.com"))

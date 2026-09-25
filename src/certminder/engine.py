@@ -50,8 +50,8 @@ def _output_args(target: Target) -> list[str]:
 def _connection_args(target: Target) -> list[str]:
     """Verification and network-timing/retry flags."""
     args: list[str] = []
-    if target.verify:
-        args.append("--verify")
+    # certinspect verifies by default, so turning it off needs --no-verify.
+    args.append("--verify" if target.verify else "--no-verify")
     if target.connect_timeout is not None:
         args += ["--connect-timeout", str(target.connect_timeout)]
     if target.read_timeout is not None:

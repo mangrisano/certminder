@@ -59,6 +59,10 @@ _TARGET_KEYS = {
 # certinspect itself) for a 'file' target.
 _HOST_ONLY_KEYS = {"port", "starttls", "min_tls_version", "require_revocation_check"}
 
+# Keys that only make sense with chain verification on (certinspect rejects
+# them with --no-verify).
+_NEEDS_VERIFY_KEYS = {"cafile", "capath", "require_revocation_check"}
+
 
 class ConfigError(ValueError):
     """Raised when the configuration file is missing or malformed."""
@@ -134,6 +138,14 @@ def _validate_policy_keys(merged: dict[str, Any], raw: dict[str, Any]) -> None:
         raise ConfigError(
             f"'cab_forum' and 'not_after_max' are mutually exclusive in {raw!r}"
         )
+    if merged.get("verify") is False:
+        needs_verify = sorted(
+            key for key in _NEEDS_VERIFY_KEYS if merged.get(key) not in (None, False)
+        )
+        if needs_verify:
+            raise ConfigError(
+                f"{needs_verify} cannot be combined with 'verify: false' in {raw!r}"
+            )
     profile = merged.get("profile")
     if profile is not None and profile not in _VALID_PROFILES:
         raise ConfigError(

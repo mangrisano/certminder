@@ -134,6 +134,36 @@ def test_cab_forum_and_not_after_max_conflict(tmp_path):
         load_config(path)
 
 
+@pytest.mark.parametrize(
+    "setting",
+    ["cafile: /etc/ca.pem", "capath: /etc/certs", "require_revocation_check: true"],
+)
+def test_verify_false_rejects_settings_that_need_verification(tmp_path, setting):
+    path = _write(
+        tmp_path,
+        f"""
+        targets:
+          - host: example.com
+            verify: false
+            {setting}
+        """,
+    )
+    with pytest.raises(ConfigError, match="verify: false"):
+        load_config(path)
+
+
+def test_verify_false_alone_is_accepted(tmp_path):
+    path = _write(
+        tmp_path,
+        """
+        targets:
+          - host: internal.example
+            verify: false
+        """,
+    )
+    assert load_config(path).targets[0].verify is False
+
+
 def test_profile_target_key(tmp_path):
     path = _write(
         tmp_path,
