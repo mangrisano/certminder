@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
-from certminder.evaluator import evaluate
+from certminder.evaluator import _RESOLVED_MESSAGE, evaluate
 from certminder.models import EventKind, Severity
 from certminder.state import TargetState
 from conftest import make_result
+
+
+def test_every_trackable_problem_has_a_resolution_message():
+    transient = {EventKind.RECOVERED, EventKind.FINGERPRINT_CHANGED}
+    missing = {k.value for k in EventKind if k not in transient} - set(
+        _RESOLVED_MESSAGE
+    )
+    assert missing == set()
 
 
 def test_valid_first_sighting_emits_nothing(target):

@@ -11,6 +11,7 @@ single ``RECOVERED`` event is emitted per problem that clears.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from certminder.models import (
@@ -67,6 +68,119 @@ def _validity_event(name: str, info: dict, days: int | None) -> Event | None:
     return None
 
 
+def _problem(
+    result: CheckResult,
+    kind: EventKind,
+    severity: Severity,
+    message: str,
+    **details: object,
+) -> Event:
+    name = result.target.name
+    return Event(
+        target_name=name,
+        kind=kind,
+        severity=severity,
+        message=f"{name}: {message}",
+        details=details,
+    )
+
+
+def _validity(result: CheckResult) -> Event | None:
+    """Validity, from certinspect's own (chain-independent) status field."""
+    return _validity_event(result.target.name, result.raw, result.days_to_expire)
+
+
+def _chain_untrusted(result: CheckResult) -> Event | None:
+    if result.chain_trusted is not False:
+        return None
+    diagnosis = result.raw.get("chain_diagnosis")
+    if diagnosis:
+        detail = f" [{diagnosis['code']}] {diagnosis['detail']}"
+    else:
+        reason = result.raw.get("chain_error")
+        detail = f" ({reason})" if reason else ""
+    return _problem(
+        result,
+        EventKind.CHAIN_UNTRUSTED,
+        Severity.CRITICAL,
+        f"certificate chain is not trusted{detail}",
+    )
+
+
+def _revoked(result: CheckResult) -> Event | None:
+    if result.revocation != "REVOKED":
+        return None
+    return _problem(
+        result, EventKind.REVOKED, Severity.CRITICAL, "certificate is REVOKED"
+    )
+
+
+def _hostname_mismatch(result: CheckResult) -> Event | None:
+    if result.hostname_match is not False:
+        return None
+    return _problem(
+        result,
+        EventKind.HOSTNAME_MISMATCH,
+        Severity.CRITICAL,
+        "certificate does not match the hostname",
+    )
+
+
+def _policy_violation(result: CheckResult) -> Event | None:
+    violations = result.raw.get("policy_violations") or []
+    if not violations:
+        return None
+    return _problem(
+        result,
+        EventKind.POLICY_VIOLATION,
+        Severity.CRITICAL,
+        f"certificate violates policy ({'; '.join(violations)})",
+        violations=list(violations),
+    )
+
+
+def _weak_crypto(result: CheckResult) -> Event | None:
+    """Small key, or a SHA-1/MD5 signature."""
+    weak = result.raw.get("weak") or []
+    if not weak:
+        return None
+    return _problem(
+        result,
+        EventKind.WEAK_CRYPTO,
+        Severity.WARNING,
+        f"weak cryptography ({'; '.join(weak)})",
+        weak=list(weak),
+    )
+
+
+def _chain_expiring(result: CheckResult) -> Event | None:
+    """Intermediate or root certificates that are expired or near expiry."""
+    warnings = result.raw.get("chain_warnings") or []
+    if not warnings:
+        return None
+    return _problem(
+        result,
+        EventKind.CHAIN_EXPIRING,
+        Severity.WARNING,
+        "; ".join(warnings),
+        warnings=list(warnings),
+    )
+
+
+#: One check per problem dimension, in the order their events are reported.
+#: A new kind of problem is a new function here, plus its EventKind and its
+#: entry in _RESOLVED_MESSAGE.
+DETECTORS: tuple[Callable[[CheckResult], Event | None], ...] = (
+    _validity,
+    _chain_untrusted,
+    _revoked,
+    _hostname_mismatch,
+    _policy_violation,
+    _weak_crypto,
+    _chain_expiring,
+)
+
+
 def detect_problems(result: CheckResult) -> list[Event]:
     """Return one event per distinct problem found on the certificate.
 
@@ -75,86 +189,7 @@ def detect_problems(result: CheckResult) -> list[Event]:
     yields one event per fault instead of a single headline status that hides
     the rest. Each event carries its own severity; the caller deduplicates.
     """
-    info = result.raw
-    name = result.target.name
-    days = result.days_to_expire
-    problems: list[Event] = []
-
-    def add(
-        kind: EventKind, severity: Severity, message: str, **details: object
-    ) -> None:
-        problems.append(
-            Event(
-                target_name=name,
-                kind=kind,
-                severity=severity,
-                message=f"{name}: {message}",
-                details=details,
-            )
-        )
-
-    # Validity, from certinspect's own (chain-independent) status field.
-    validity_event = _validity_event(name, info, days)
-    if validity_event is not None:
-        problems.append(validity_event)
-
-    # Chain of trust.
-    if result.chain_trusted is False:
-        diagnosis = info.get("chain_diagnosis")
-        if diagnosis:
-            detail = f" [{diagnosis['code']}] {diagnosis['detail']}"
-        else:
-            reason = info.get("chain_error")
-            detail = f" ({reason})" if reason else ""
-        add(
-            EventKind.CHAIN_UNTRUSTED,
-            Severity.CRITICAL,
-            f"certificate chain is not trusted{detail}",
-        )
-
-    # Revocation.
-    if result.revocation == "REVOKED":
-        add(EventKind.REVOKED, Severity.CRITICAL, "certificate is REVOKED")
-
-    # Hostname coverage.
-    if result.hostname_match is False:
-        add(
-            EventKind.HOSTNAME_MISMATCH,
-            Severity.CRITICAL,
-            "certificate does not match the hostname",
-        )
-
-    # Opt-in policy checks.
-    violations = info.get("policy_violations") or []
-    if violations:
-        add(
-            EventKind.POLICY_VIOLATION,
-            Severity.CRITICAL,
-            f"certificate violates policy ({'; '.join(violations)})",
-            violations=list(violations),
-        )
-
-    # Weak cryptography (small key, SHA-1/MD5 signature).
-    weak = info.get("weak") or []
-    if weak:
-        add(
-            EventKind.WEAK_CRYPTO,
-            Severity.WARNING,
-            f"weak cryptography ({'; '.join(weak)})",
-            weak=list(weak),
-        )
-
-    # Intermediate/root chain certificates that are expired or near expiry.
-    chain_warnings = info.get("chain_warnings") or []
-    if chain_warnings:
-        add(
-            EventKind.CHAIN_EXPIRING,
-            Severity.WARNING,
-            "; ".join(chain_warnings),
-            warnings=list(chain_warnings),
-        )
-
-    return problems
+    return [event for detect in DETECTORS if (event := detect(result)) is not None]
 
 
 # Human-friendly resolution messages, keyed by the cleared problem's kind value.
