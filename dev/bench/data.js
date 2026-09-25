@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790367794542,
+  "lastUpdate": 1790369470790,
   "repoUrl": "https://github.com/mangrisano/certminder",
   "entries": {
     "certminder benchmarks": [
@@ -532,6 +532,44 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0001115067810696924",
             "extra": "mean: 802.6048820141284 usec\nrounds: 695"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "committer": {
+            "email": "michele.angrisano@gmail.com",
+            "name": "Michele Angrisano",
+            "username": "mangrisano"
+          },
+          "distinct": true,
+          "id": "a1e9def39ccd1112334a452347cd7c13663f3269",
+          "message": "chore(release): 2.5.0",
+          "timestamp": "2026-09-25T22:50:45+02:00",
+          "tree_id": "251b4f20d6719a8708c3453612f6adab8d796f99",
+          "url": "https://github.com/mangrisano/certminder/commit/a1e9def39ccd1112334a452347cd7c13663f3269"
+        },
+        "date": 1790369468779,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems",
+            "value": 128320.21334923316,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000001163992958500716",
+            "extra": "mean: 7.793004499442534 usec\nrounds: 40672"
+          },
+          {
+            "name": "benchmarks/bench_perf.py::test_detect_problems_batch",
+            "value": 1239.1272465750558,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000029296630366258732",
+            "extra": "mean: 807.0196202722499 usec\nrounds: 661"
           }
         ]
       }
