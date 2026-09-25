@@ -22,6 +22,34 @@ from certminder.models import CheckResult, Target
 # fetched and analysed; it simply has a problem).
 _ANALYSED_CODES = {0, 3, 4, 5, 6, 7, 9}
 
+# certinspect bounds each OCSP/CRL/CA-issuer download to 60 s; a verified host
+# check can chain up to three of them (OCSP, the CRL fallback, a fetched issuer).
+_REVOCATION_FETCH_BUDGET = 3 * 60.0
+# Process start-up, DNS resolution and the retry back-off.
+_PROCESS_SLACK = 30.0
+
+
+def subprocess_timeout(target: Target) -> float:
+    """The longest a certinspect run for ``target`` can legitimately take.
+
+    A host check does one TLS handshake, plus a second, verified one when
+    ``verify`` is on, each retried up to ``retries`` times and each bounded by
+    the connect and read timeouts; verification then adds the revocation
+    downloads. Killing certinspect any earlier would turn a slow but healthy
+    endpoint into a false UNREACHABLE.
+    """
+    if target.file is not None:
+        return float(target.timeout) + _PROCESS_SLACK
+    connect = (
+        target.timeout if target.connect_timeout is None else target.connect_timeout
+    )
+    read = target.timeout if target.read_timeout is None else target.read_timeout
+    handshakes = 2 if target.verify else 1
+    budget = handshakes * (target.retries + 1) * (connect + read)
+    if target.verify:
+        budget += _REVOCATION_FETCH_BUDGET
+    return budget + _PROCESS_SLACK
+
 
 def _target_args(is_file: bool, target: Target) -> list[str]:
     """The positional/identifying args: what to inspect and how to reach it."""
@@ -164,7 +192,7 @@ def check_target(target: Target, bin_path: str = "certinspect") -> CheckResult:
             cmd,
             capture_output=True,
             text=True,
-            timeout=target.timeout + 30,
+            timeout=subprocess_timeout(target),
         )
     except FileNotFoundError:
         return CheckResult(

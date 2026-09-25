@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Slow but healthy endpoints are no longer reported as unreachable. certinspect
+  was killed after `timeout + 30` seconds, but a verified check does two TLS
+  handshakes (each retried `retries` times, each bounded by the connect and
+  read timeouts) and then up to three 60-second revocation downloads, so a
+  check with `retries` or an OCSP responder that answered slowly could be cut
+  off mid-way. The limit now follows that worst case.
 - Alerts are no longer lost when a notifier fails to deliver them. State was
   saved before the notifiers ran, so an alert whose email or webhook failed was
   already marked as notified and never sent again. Events are now delivered

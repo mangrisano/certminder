@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 
-from certminder.engine import build_command, check_target
+from certminder.engine import build_command, check_target, subprocess_timeout
 from certminder.models import Target
 
 
@@ -243,6 +243,37 @@ def test_missing_binary(monkeypatch):
     result = check_target(Target(host="example.com"), bin_path="nope")
     assert result.exit_code == 127
     assert "not found" in (result.error or "")
+
+
+def test_subprocess_timeout_covers_both_handshakes_and_revocation():
+    # verify on: 2 handshakes x (5 + 5) + 180 revocation + 30 slack
+    assert subprocess_timeout(Target(host="example.com")) == 230.0
+
+
+def test_subprocess_timeout_scales_with_retries_and_split_timeouts():
+    target = Target(host="example.com", connect_timeout=3, read_timeout=10, retries=2)
+    assert subprocess_timeout(target) == 2 * 3 * 13 + 180 + 30
+
+
+def test_subprocess_timeout_without_verification():
+    assert subprocess_timeout(Target(host="example.com", verify=False)) == 40.0
+
+
+def test_subprocess_timeout_file_target():
+    assert subprocess_timeout(Target(file="/tmp/leaf.pem")) == 35.0
+
+
+def test_check_passes_the_budget_to_subprocess(monkeypatch):
+    seen = {}
+
+    def runner(*args, **kwargs):
+        seen["timeout"] = kwargs["timeout"]
+        return subprocess.CompletedProcess(args, 0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", runner)
+    target = Target(host="example.com")
+    check_target(target)
+    assert seen["timeout"] == subprocess_timeout(target)
 
 
 def test_unrunnable_binary_is_an_error_result(monkeypatch):
